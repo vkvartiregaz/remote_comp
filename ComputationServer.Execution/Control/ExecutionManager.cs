@@ -6,163 +6,238 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ComputationServer.Data.Entities;
-using ComputationServer.Execution.Scheduling;
-using ComputationServer.Execution.ComputerAccess;
+using ComputationServer.Data.Models;
+using ComputationServer.Scheduling.Interfaces;
+using ComputationServer.Scheduling.Schedulers;
+using ComputationServer.Nodes.Interfaces;
+using ComputationServer.Nodes.AccessModules;
+using ComputationServer.Data.Interfaces;
+using ComputationServer.Execution.Interfaces;
+using ComputationServer.Scheduling.Models;
 
 namespace ComputationServer.Execution.Control
 {
-    public class ExecutionManager
+    public class ExecutionManager : IExecutionManager
     {
-        private IJobScheduler _scheduler = new NaiveScheduler();
-        private List<Computer> _computers;
-        //because keeping this pile in DB would be too much trouble
-        private ConcurrentDictionary<Session, int> _activeSessions = new ConcurrentDictionary<Session, int>();
+        private List<IScheduler> _schedulers = new List<IScheduler> { new NaiveScheduler() };
+        private List<IComputer> _computers = new List<IComputer> { new LocalComputer() };
+        private ISessionRepository _sessionRepository;
         
-        //job monitor period in seconds
-        private int _monitorPeriod = 30;
-        private CancellationTokenSource janitorStopper = new CancellationTokenSource();
-
-        //yes, this is a session id counter
-        //no, I am not sure that I am ashamed, since I am bound into having an int id
-        private int _sessionsProcessed = 0;
-
-        public ExecutionManager()
+        public ExecutionManager(List<IScheduler> schedulers, 
+            List<IComputer> computers,
+            ISessionRepository sessionRepository,
+            int monitorInterval)
         {
-            //TODO: Initialize computer list from config file
+            _schedulers = schedulers;
+            _computers = computers;
+            _sessionRepository = sessionRepository;
 
-            //set up monitor worker
-            IObservable<long> janitor = Observable.Interval(TimeSpan.FromSeconds(_monitorPeriod));
-            Action monitorAction = Monitor;
-            janitor.Subscribe(x => Task.Run(monitorAction), janitorStopper.Token);
+            StartMonitor(monitorInterval);
         }
 
-        public bool StartSession(Session session)
+
+        public string StartSession(Session session)
         {
-            var alive = AliveOnly();
+            var id = Guid.NewGuid().ToString();
+            session.Id = id;
+            session.Status = Status.PROCESSING;
+            _sessionRepository.Add(session);
 
-            if (!alive.Any())
-                return false;
+            var schedule = ScheduleSession(session);
 
-            var sessionId = _sessionsProcessed++;
-            session.Id = sessionId;
-            session.Link();
-            _activeSessions[session] = sessionId;
-
-            var schedule = _scheduler.Schedule(session, alive);
-
-            if (schedule ==  null)
+            if (schedule == null)
             {
                 session.Status = Status.FAILED;
-                ArchiveSession(session);
-                return false;
+                _sessionRepository.Update(session);
+                return null;
             }
-            
+
             var started = StartScheduled(schedule);
 
             if (!started)
             {
                 session.Status = Status.FAILED;
-                ArchiveSession(session);
-                return false;
+                _sessionRepository.Update(session);
+                return null;
             }
 
             session.Status = Status.RUNNING;
-            return true;
+            _sessionRepository.Update(session);
+
+            return id;
         }
 
-        public Session CheckSession(int sessionId)
+        public Session GetSessionStatus(string id)
         {
-            return (from s in _activeSessions.Keys
-                    where s.Id == sessionId
-                    select s).ToList().FirstOrDefault();
+            return _sessionRepository.FindById(id);
         }
 
-        public bool StopSession(int sessionId)
+        public bool StopSession(string id)
         {
-            var toStop = (from s in _activeSessions.Keys
-                          where s.Id == sessionId
-                          select s).ToList().FirstOrDefault();
+            var toStop = _sessionRepository.FindById(id);
 
             if (toStop == null)
-                return false;
+                return true;
 
-            AbortJobs(toStop.CompGraph.Operations);
-            int dummy;
-            _activeSessions.Remove(toStop, out dummy);//remove from active
-            //record session into archive
+            switch(toStop.Status)
+            {
+                case Status.COMPLETED:
+                case Status.ABORTED:
+                case Status.FAILED:
+                {
+                    return true;
+                }
+                case Status.PROCESSING:
+                case Status.QUEUED:
+                case Status.RUNNING:
+                {
+                    //transaction start?
+                    var aborted = AbortSession(toStop);
 
-            return true;
+                    if (!aborted)
+                        return false;
+
+                    return true;
+                }
+
+                case Status.UNKNOWN:
+                {
+                    return false;
+                }
+
+                default:
+                {
+                    return false;
+                }
+            }            
         }
 
         public bool ModifySession(Session session)
         {
-            //I am genuinely scared by the prospect
             throw new NotImplementedException();
         }
         
-        private bool StartScheduled(Dictionary<Operation, Computer> schedule)
+        private bool StartScheduled(Schedule schedule)
         {
-            foreach (var entry in schedule)
+            foreach (var entry in schedule.Assigned)
             {
                 var computer = entry.Value;
                 var job = entry.Key;
 
-                if (!computer.StartJob(job))
-                {
-                    AbortJobs(schedule.Keys.ToList());
+                if (!computer.EnqueueJob(job))
                     return false;
+            }
+
+            return true;
+        }
+
+        private bool AbortSession(Session session)
+        {
+            foreach (var c in _computers)
+            {
+                var fromSession = c.FindJobs(job => job.SessionId == session.Id);
+
+                foreach(var job in fromSession)
+                {
+                    if(!c.StopJob(job))
+                        return false;
                 }
             }
 
             return true;
         }
 
-        private void AbortJobs(List<Operation> jobs)
-        {
-            foreach(var job in jobs)
-            {
-                var assignedTo = (from c in _computers
-                                  where c.AssignedOps.Contains(job.GlobalId)
-                                  select c).FirstOrDefault();
-
-                if (assignedTo != null)
-                    assignedTo.StopJob(job.GlobalId);
-            }
-        }
-
-        private List<Computer> AliveOnly()
+        private List<IComputer> AliveOnly()
         {
             return (from c in _computers
                     where c.IsAlive()
                     select c).ToList();
         }
-             
-        private void ArchiveSession(Session session)
+
+        private Schedule ScheduleSession(Session session)
         {
-            //remove from active, probably write something somewhere (DB or log?)
-            throw new NotImplementedException();
+            var alive = AliveOnly();
+
+            if (!alive.Any())
+                return null;
+
+            var schedules = Task.WhenAll(_schedulers.Select(s => s.ScheduleSessionAsync(session, alive))).Result;
+
+            if (!schedules.Any(s => s != null))
+                return null;
+
+            var best = new Schedule { EstimatedTime = int.MaxValue };
+
+            foreach (var s in schedules)
+                if (s.EstimatedTime < best.EstimatedTime)
+                    best = s;
+
+            return best;
         }
 
-        private async void Monitor()
+        private void StartMonitor(int interval)
         {
-            foreach (var c in _computers)
-                c.Progress();
+            Task.Run(() => Monitor(interval));
+        }
 
-            foreach (var s in _activeSessions.Keys)
+        private async void Monitor(int interval)
+        {
+            while (true)
             {
-                bool completed = s.CompGraph.Operations
-                    .All(op => op.Status == Status.COMPLETED);
+                foreach (var c in _computers)
+                    c.Progress();
 
-                if(completed)
-                    s.Status = Status.COMPLETED;
+                var activeStatuses = new List<Status> { Status.PROCESSING, Status.QUEUED, Status.RUNNING };
+                var activeSessions = _sessionRepository.FindAll(s => activeStatuses.Contains(s.Status));
 
-                bool failed = s.CompGraph.Operations
-                    .Any(op => op.Status == Status.FAILED || op.Status == Status.UNKNOWN);
+                foreach (var s in activeSessions)
+                {
+                    var sessionJobs = new List<Operation>();
 
-                if (failed)
-                    s.Status = Status.FAILED;
+                    foreach (var c in _computers)
+                        sessionJobs.InsertRange(0, c.FindJobs(j => j.SessionId == s.Id));
+
+                    if (sessionJobs.All(j => j.Status == Status.COMPLETED))
+                        s.Status = Status.COMPLETED;
+                    
+                    if(sessionJobs.Any(j => j.Status == Status.FAILED || j.Status == Status.UNKNOWN))
+                    {
+                        var rescheduled = RescheduleSession(s);
+
+                        if (!rescheduled)
+                            s.Status = Status.FAILED;
+                    }
+                }
+
+                await Task.Delay(interval * 1000);
             }
         }
+
+        private bool RescheduleSession(Session session)
+        {
+            var alive = AliveOnly();
+
+            if (!alive.Any())
+                return false;
+
+            var schedules = Task.WhenAll(_schedulers.Select(s => s.ScheduleSessionAsync(session, alive))).Result;
+
+            if (!schedules.Any(s => s != null))
+                return false;
+
+            var best = new Schedule { EstimatedTime = int.MaxValue };
+
+            foreach (var s in schedules)
+                if (s.EstimatedTime < best.EstimatedTime)
+                    best = s;
+
+            var started = StartScheduled(best);
+
+            if (!started)
+                return false;
+
+            return true;
+        }
+
     }
 }

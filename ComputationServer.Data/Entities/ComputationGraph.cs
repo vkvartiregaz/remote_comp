@@ -4,7 +4,7 @@ using System.Text;
 using System.Runtime.Serialization;
 
 
-namespace ComputationServer.Data.Entities
+namespace ComputationServer.Data.Models
 {
     [DataContract]
     public class ComputationGraph

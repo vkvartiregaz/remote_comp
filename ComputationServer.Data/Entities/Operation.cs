@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.Serialization;
 
-namespace ComputationServer.Data.Entities
+namespace ComputationServer.Data.Models
 {
     [DataContract]
     public class Operation
@@ -36,8 +36,6 @@ namespace ComputationServer.Data.Entities
             }
         }
 
-        public Guid GlobalId { get; } = Guid.NewGuid();
-
-        public int SessionId { get; set; }
+        public string SessionId { get; set; }
     }
 }

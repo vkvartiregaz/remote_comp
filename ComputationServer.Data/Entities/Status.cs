@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ComputationServer.Data.Entities
+namespace ComputationServer.Data.Models
 {
     public enum Status
     {

@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.Serialization;
 
-namespace ComputationServer.Data.Entities
+namespace ComputationServer.Data.Models
 {
     public class Session
     {
         [DataMember(Name = "id", IsRequired = false)]
-        public int Id { get; set; }
+        public string Id { get; set; }
 
         [DataMember(Name = "computationGraph")]
         public ComputationGraph CompGraph { get; set; }
@@ -21,10 +21,6 @@ namespace ComputationServer.Data.Entities
 
         public Status Status { get; set; }
 
-        public void Link()
-        {
-            foreach (var op in CompGraph.Operations)
-                op.SessionId = Id;
-        }
+        public Schedule Schedule { get; set; }
     }
 }

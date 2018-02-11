@@ -2,21 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <AssemblyName></AssemblyName>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Folder Include="Control\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Reactive" Version="3.1.1" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ComputationServer.Data\ComputationServer.Data.csproj" />
     <ProjectReference Include="..\ComputationServer.Nodes\ComputationServer.Nodes.csproj" />
-    <ProjectReference Include="..\ComputationServer.Scheduling\ComputationServer.Scheduling.csproj" />
   </ItemGroup>
 
 </Project>
