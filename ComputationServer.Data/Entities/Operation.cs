@@ -25,11 +25,17 @@ namespace ComputationServer.Data.Models
         [DataMember(Name = "status", IsRequired = false)]
         public Status Status
         {
-            get { return _status; }
+            get
+            {
+                lock (_hold)
+                {
+                    return _status;
+                }
+            }
 
             set
             {
-                lock(this)
+                lock (_hold)
                 {
                     _status = value;
                 }
@@ -37,5 +43,9 @@ namespace ComputationServer.Data.Models
         }
 
         public string SessionId { get; set; }
+
+        public string Guid { get; set; }
+
+        private object _hold = new object();
     }
 }

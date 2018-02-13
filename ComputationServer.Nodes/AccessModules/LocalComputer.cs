@@ -2,37 +2,76 @@
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
     public class LocalComputer : IComputer
     {
-        public bool EnqueueJob(Operation operation)
+        private JobQueue _jobQueue;
+        private List<Operation> _running;
+
+        public LocalComputer(int maxConcurrent)
         {
-            throw new NotImplementedException();
+            _jobQueue = new JobQueue(maxConcurrent);
+            _running = 
         }
 
-        public DateTime GetJobETA(Operation operation)
+        public void EnqueueJob(Operation operation)
         {
-            throw new NotImplementedException();
+            _jobQueue.Enqueue(operation);
+        }
+        
+        public int GetJobETA(Operation operation)
+        {
+            return 1;
         }
 
         public bool IsAlive()
         {
-            throw new NotImplementedException();
+            return true;
         }
 
         public void Progress()
         {
-            throw new NotImplementedException();
+            var active = _jobQueue.Active;
+            var pollResults = PollJobs(active);
+            var oldActive = _jobQueue.Active;
+            var updated = _jobQueue.Update(pollResults);
+
+            if(!updated)
+            {
+                throw new Exception("Progress failed");
+            }
+
+            var newActive = _jobQueue.Active;
+            var toStart = (from j in newActive
+                           where !oldActive.Contains(j)
+                           select j).ToList();
+
+            foreach (var job in toStart)
+                StartJob(job);
         }
 
-        public bool StopJob(Operation operation)
+        public bool AbortJob(Operation operation)
         {
-            throw new NotImplementedException();
+            return false;
+        }
+
+        private bool StartJob(Operation operation)
+        {
+            return false;
+        }
+
+        private bool StopJob(Operation operation)
+        {
+            return false;
+        }
+
+        private Dictionary<string, Status> PollJobs(List<Operation> jobs)
+        {
+            return null;
         }
     }
 }

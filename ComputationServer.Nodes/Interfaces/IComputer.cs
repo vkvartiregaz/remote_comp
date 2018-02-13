@@ -15,5 +15,6 @@ namespace ComputationServer.Nodes.Interfaces
         bool EnqueueJob(Operation operation);
         bool StopJob(Operation operation);
         List<Operation> FindJobs(Func<Operation, bool> condition);
+        int TimeEstimate(Operation operation);
     }
 }
