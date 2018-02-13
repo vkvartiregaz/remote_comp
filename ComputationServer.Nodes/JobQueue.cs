@@ -101,6 +101,11 @@ namespace ComputationServer.Nodes
 
             foreach (var op in activeCopy)
             {
+                if (!updatedActive.ContainsKey(op.Guid))
+                    continue;
+
+                var newStatus = updatedActive[op.Guid]
+
                 switch (op.Status)
                 {
                     case Status.RUNNING:
