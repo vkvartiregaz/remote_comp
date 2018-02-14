@@ -11,7 +11,7 @@ namespace ComputationServer.Nodes
     {
         private ConcurrentQueue<Operation> _pendingJobs;
         private ConcurrentQueue<Operation> _activeJobs;
-        private ConcurrentQueue<Operation> _completeJobs;
+        private ConcurrentQueue<Operation> _completedJobs;
         private ConcurrentQueue<Operation> _failedJobs;
         private int _maxConcurrent;
         private object _hold = new object();
@@ -21,7 +21,7 @@ namespace ComputationServer.Nodes
             _maxConcurrent = maxConcurrent;
             _pendingJobs = new ConcurrentQueue<Operation>();
             _activeJobs = new ConcurrentQueue<Operation>();
-            _completeJobs = new ConcurrentQueue<Operation>();
+            _completedJobs = new ConcurrentQueue<Operation>();
             _failedJobs = new ConcurrentQueue<Operation>();
         }
 
@@ -33,7 +33,7 @@ namespace ComputationServer.Nodes
             {
                 lock(_hold)
                 {
-                    return _completeJobs.ToList();
+                    return _completedJobs.ToList();
                 }
             }
         }
@@ -80,7 +80,7 @@ namespace ComputationServer.Nodes
                                    where condition(op)
                                    select op).ToList());
 
-            result.InsertRange(0, (from op in _completeJobs
+            result.InsertRange(0, (from op in _completedJobs
                                    where condition(op)
                                    select op).ToList());
 
@@ -93,54 +93,77 @@ namespace ComputationServer.Nodes
 
         public bool Update(Dictionary<string, Status> updatedActive)
         {
-            var activeCopy = _activeJobs.ToList();
-            var newActive = new ConcurrentQueue<Operation>();
-            var newPending = new ConcurrentQueue<Operation>();
-            var newCompleted = new ConcurrentQueue<Operation>();
-            var newFailed = new ConcurrentQueue<Operation>();
-
-            foreach (var op in activeCopy)
+            lock (_hold)
             {
-                if (!updatedActive.ContainsKey(op.Guid))
-                    continue;
+                var newActive = new ConcurrentQueue<Operation>();
+                var newPending = new ConcurrentQueue<Operation>();
+                var newCompleted = new ConcurrentQueue<Operation>();
+                var newFailed = new ConcurrentQueue<Operation>();
+                
+                var activeCopy = _activeJobs.ToList();
+                var pendingCopy = _pendingJobs.ToList();
+                var completedCopy = _completedJobs.ToList();
+                var failedCopy = _failedJobs.ToList();
 
-                var newStatus = updatedActive[op.Guid]
+                foreach (var job in pendingCopy)
+                    newPending.Enqueue(job);
 
-                switch (op.Status)
+                foreach (var job in completedCopy)
+                    newCompleted.Enqueue(job);
+
+                foreach (var job in failedCopy)
+                    newFailed.Enqueue(job);
+                
+                foreach (var op in activeCopy)
                 {
-                    case Status.RUNNING:
-                        {
-                            newActive.Enqueue(op);
-                            break;
-                        }
+                    if (!updatedActive.ContainsKey(op.Guid))
+                        continue;
 
-                    case Status.COMPLETED:
-                        {
-                            newCompleted.Enqueue(op);
-                            break;
-                        }
-                    case Status.FAILED:
-                    case Status.UNKNOWN:
-                        {
-                            newFailed.Enqueue(op);
-                            break;
-                        }
-                    default:
-                        {
-                            throw new Exception("Unexpected job status");
-                        }
+                    var newStatus = updatedActive[op.Guid];
+
+                    switch (newStatus)
+                    {
+                        case Status.RUNNING:
+                            {
+                                newActive.Enqueue(op);
+                                break;
+                            }
+
+                        case Status.COMPLETED:
+                            {
+                                newCompleted.Enqueue(op);
+                                break;
+                            }
+                        case Status.FAILED:
+                        case Status.UNKNOWN:
+                            {
+                                newFailed.Enqueue(op);
+                                break;
+                            }
+                        default:
+                            {
+                                return false;
+                            }
+                    }
                 }
+                
+                var deficit = _maxConcurrent - newActive.Count;
+
+                while (deficit > 0)
+                {
+                    Operation toStart;
+                    newPending.TryDequeue(out toStart);
+                    newActive.Enqueue(toStart);
+                    deficit--;
+                }
+
+                _pendingJobs = newPending;
+                _activeJobs = newActive;
+                _completedJobs = newCompleted;
+                _failedJobs = newFailed;
             }
 
-            var pendingCopy = _pendingJobs.ToList();
-
-            var deficit = _maxConcurrent - newActive.Count;
-
-
-            while (deficit > 0)
-            {
-
-            }
+            return true;
         }
     }
 }

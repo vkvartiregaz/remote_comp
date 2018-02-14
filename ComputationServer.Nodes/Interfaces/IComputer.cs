@@ -11,9 +11,9 @@ namespace ComputationServer.Nodes.Interfaces
     {
         bool IsAlive();
         void Progress();
-        DateTime GetJobETA(Operation operation);
+        int GetJobETA(Operation operation);
         bool EnqueueJob(Operation operation);
-        bool StopJob(Operation operation);
+        bool AbortJob(Operation operation);
         List<Operation> FindJobs(Func<Operation, bool> condition);
         int TimeEstimate(Operation operation);
     }

@@ -15,7 +15,7 @@ namespace ComputationServer.Nodes.AccessModules
         public LocalComputer(int maxConcurrent)
         {
             _jobQueue = new JobQueue(maxConcurrent);
-            _running = 
+            _running = new List<Operation>();
         }
 
         public void EnqueueJob(Operation operation)
@@ -41,9 +41,7 @@ namespace ComputationServer.Nodes.AccessModules
             var updated = _jobQueue.Update(pollResults);
 
             if(!updated)
-            {
                 throw new Exception("Progress failed");
-            }
 
             var newActive = _jobQueue.Active;
             var toStart = (from j in newActive
