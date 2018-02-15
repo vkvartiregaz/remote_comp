@@ -7,9 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Execution
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Data", "ComputationServer.Data\ComputationServer.Data.csproj", "{A467B391-7BD8-43E3-8E84-7952FB172436}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationServer.Nodes", "ComputationServer.Nodes\ComputationServer.Nodes.csproj", "{8F9381B4-0D60-4A56-8E28-6C9B0C6F5A86}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Nodes", "ComputationServer.Nodes\ComputationServer.Nodes.csproj", "{8F9381B4-0D60-4A56-8E28-6C9B0C6F5A86}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationServer.Scheduling", "ComputationServer.Scheduling\ComputationServer.Scheduling.csproj", "{DE10D1EE-8B89-40B3-B287-33B80563C419}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Scheduling", "ComputationServer.Scheduling\ComputationServer.Scheduling.csproj", "{DE10D1EE-8B89-40B3-B287-33B80563C419}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationServer.Test", "ComputationServer.Test\ComputationServer.Test.csproj", "{E0E31668-D487-4E91-867D-C6DE3C667FA9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{DE10D1EE-8B89-40B3-B287-33B80563C419}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE10D1EE-8B89-40B3-B287-33B80563C419}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE10D1EE-8B89-40B3-B287-33B80563C419}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0E31668-D487-4E91-867D-C6DE3C667FA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0E31668-D487-4E91-867D-C6DE3C667FA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0E31668-D487-4E91-867D-C6DE3C667FA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0E31668-D487-4E91-867D-C6DE3C667FA9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

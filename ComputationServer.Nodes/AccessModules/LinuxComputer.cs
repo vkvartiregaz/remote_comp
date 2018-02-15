@@ -8,29 +8,26 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LinuxComputer : IComputer
+    public class LinuxComputer : GenericComputer
     {
-        public bool EnqueueJob(Operation operation)
+        public LinuxComputer(int maxConcurrent) : base(maxConcurrent) { }
+
+        protected override bool StartJob(Operation operation)
         {
             throw new NotImplementedException();
         }
 
-        public DateTime GetJobETA(Operation operation)
+        protected override bool StopJob(Operation operation)
         {
             throw new NotImplementedException();
         }
 
-        public bool IsAlive()
+        protected override Dictionary<string, Status> PollJobs(List<Operation> jobs)
         {
             throw new NotImplementedException();
         }
 
-        public void Progress()
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool StopJob(Operation operation)
+        protected override List<MnemonicValue> FetchResults(List<Operation> completed)
         {
             throw new NotImplementedException();
         }

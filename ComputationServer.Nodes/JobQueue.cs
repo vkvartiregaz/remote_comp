@@ -14,7 +14,7 @@ namespace ComputationServer.Nodes
         private ConcurrentQueue<Operation> _completedJobs;
         private ConcurrentQueue<Operation> _failedJobs;
         private int _maxConcurrent;
-        private object _hold = new object();
+        private object _queueState = new object();
         
         public JobQueue(int maxConcurrent)
         {
@@ -27,13 +27,13 @@ namespace ComputationServer.Nodes
 
         #region Queue State Access
 
-        public List<Operation> Complete
+        public List<Operation> Completed
         {
             get
             {
-                lock(_hold)
+                lock(_queueState)
                 {
-                    return _completedJobs.ToList();
+                    return CopyAll(_completedJobs.ToList());
                 }
             }
         }
@@ -42,9 +42,9 @@ namespace ComputationServer.Nodes
         {
             get
             {
-                lock (_hold)
+                lock (_queueState)
                 {
-                    return _failedJobs.ToList();
+                    return CopyAll(_failedJobs.ToList());
                 }
             }
         }
@@ -53,9 +53,9 @@ namespace ComputationServer.Nodes
         {
             get
             {
-                lock (_hold)
+                lock (_queueState)
                 {
-                    return _activeJobs.ToList();
+                    return CopyAll(_activeJobs.ToList());
                 }
             }
         }
@@ -64,7 +64,7 @@ namespace ComputationServer.Nodes
 
         public void Enqueue(Operation job)
         {
-            lock(_hold)
+            lock(_queueState)
             {
                 _pendingJobs.Enqueue(job);
             }
@@ -72,77 +72,84 @@ namespace ComputationServer.Nodes
 
         public List<Operation> Find(Func<Operation, bool> condition)
         {
-            var result = (from op in _pendingJobs
-                          where condition(op)
-                          select op).ToList();
+            lock (_queueState)
+            {
+                var inPending = (from op in _pendingJobs
+                                 where condition(op)
+                                 select op).ToList();
 
-            result.InsertRange(0, (from op in _activeJobs
+                var inActive = (from op in _activeJobs
+                                where condition(op)
+                                select op).ToList();
+
+                var inCompleted = (from op in _completedJobs
                                    where condition(op)
-                                   select op).ToList());
+                                   select op).ToList();
 
-            result.InsertRange(0, (from op in _completedJobs
-                                   where condition(op)
-                                   select op).ToList());
+                var inFailed = (from op in _failedJobs
+                                where condition(op)
+                                select op).ToList();
 
-            result.InsertRange(0, (from op in _failedJobs
-                                   where condition(op)
-                                   select op).ToList());
-
-            return result;
+                return CopyAll(inPending, inActive, inCompleted, inFailed);
+            }
         }
 
-        public bool Update(Dictionary<string, Status> updatedActive)
+        public List<Operation> Update(Dictionary<string, Status> updatedActive)
         {
-            lock (_hold)
-            {
-                var newActive = new ConcurrentQueue<Operation>();
-                var newPending = new ConcurrentQueue<Operation>();
-                var newCompleted = new ConcurrentQueue<Operation>();
-                var newFailed = new ConcurrentQueue<Operation>();
-                
-                var activeCopy = _activeJobs.ToList();
-                var pendingCopy = _pendingJobs.ToList();
-                var completedCopy = _completedJobs.ToList();
-                var failedCopy = _failedJobs.ToList();
+            var newActive = new ConcurrentQueue<Operation>();
+            var newPending = new ConcurrentQueue<Operation>();
+            var newCompleted = new ConcurrentQueue<Operation>();
+            var newFailed = new ConcurrentQueue<Operation>();
+            var changed = new List<Operation>();
 
-                foreach (var job in pendingCopy)
+            lock (_queueState)
+            {
+                var activeCopy = _activeJobs.ToList();
+
+                foreach (var job in _pendingJobs)
                     newPending.Enqueue(job);
 
-                foreach (var job in completedCopy)
+                foreach (var job in _completedJobs)
                     newCompleted.Enqueue(job);
 
-                foreach (var job in failedCopy)
+                foreach (var job in _failedJobs)
                     newFailed.Enqueue(job);
+            
                 
-                foreach (var op in activeCopy)
+                foreach (var job in activeCopy)
                 {
-                    if (!updatedActive.ContainsKey(op.Guid))
+                    if (!updatedActive.ContainsKey(job.Guid))
                         continue;
 
-                    var newStatus = updatedActive[op.Guid];
+                    var newStatus = updatedActive[job.Guid];
+                    var clone = job.Clone();
+
+                    clone.Status = newStatus;
 
                     switch (newStatus)
                     {
                         case Status.RUNNING:
                             {
-                                newActive.Enqueue(op);
+                                newActive.Enqueue(clone);
                                 break;
                             }
 
                         case Status.COMPLETED:
                             {
-                                newCompleted.Enqueue(op);
+                                newCompleted.Enqueue(clone);
+                                changed.Add(clone.Clone());
                                 break;
                             }
                         case Status.FAILED:
                         case Status.UNKNOWN:
-                            {
-                                newFailed.Enqueue(op);
+                            {                                
+                                newFailed.Enqueue(clone);
+                                changed.Add(clone.Clone());
                                 break;
                             }
                         default:
                             {
-                                return false;
+                                break;
                             }
                     }
                 }
@@ -152,9 +159,16 @@ namespace ComputationServer.Nodes
                 while (deficit > 0)
                 {
                     Operation toStart;
-                    newPending.TryDequeue(out toStart);
-                    newActive.Enqueue(toStart);
-                    deficit--;
+                    if (newPending.TryDequeue(out toStart))
+                    {
+                        var clone = toStart.Clone();
+                        clone.Status = Status.RUNNING;
+                        newActive.Enqueue(clone);
+                        changed.Add(clone.Clone());
+                        deficit--;
+                    }
+                    else
+                        break;
                 }
 
                 _pendingJobs = newPending;
@@ -163,7 +177,30 @@ namespace ComputationServer.Nodes
                 _failedJobs = newFailed;
             }
 
-            return true;
+            return changed;
+        }
+
+        public List<Operation> GetAll()
+        {
+            lock (_queueState)
+            {
+                var pending = _pendingJobs.ToList();
+                var active = _activeJobs.ToList();
+                var completed = _completedJobs.ToList();
+                var failed = _failedJobs.ToList();
+                return CopyAll(pending, active, completed, failed);
+            }            
+        }
+
+        private List<Operation> CopyAll(params List<Operation>[] toCopy)
+        {
+            var result = new List<Operation>();
+
+            foreach (var list in toCopy)
+                foreach(var job in list)
+                    result.Add(job.Clone());
+
+            return result;
         }
     }
 }

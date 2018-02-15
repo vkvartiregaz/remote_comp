@@ -47,5 +47,18 @@ namespace ComputationServer.Data.Models
         public string Guid { get; set; }
 
         private object _hold = new object();
+
+        public Operation Clone()
+        {
+            var clone = new Operation();
+            clone.Guid = Guid;
+            clone.LocalId = LocalId;
+            clone.Name = Name;
+            clone.Input = Input;
+            clone.Output = Output;
+            clone.Status = Status;
+            clone.SessionId = SessionId;
+            return clone;
+        }
     }
 }

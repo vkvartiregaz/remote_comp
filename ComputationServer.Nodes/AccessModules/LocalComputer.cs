@@ -4,72 +4,108 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.IO;
+using System.Diagnostics;
+using ComputationServer.Data.Interfaces;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LocalComputer : IComputer
+    public class LocalComputer : GenericComputer
     {
-        private JobQueue _jobQueue;
-        private List<Operation> _running;
+        private string _workareaPath;
+        private string _executableName;
+        private Dictionary<string, Process> _running;
 
-        public LocalComputer(int maxConcurrent)
+        public LocalComputer(int maxConcurrent, 
+            string workareaPath,
+            IMethodRepository methodRepository,
+            IOperationRepository operationRepository,
+            string executableName) : base(maxConcurrent, methodRepository, operationRepository)
         {
-            _jobQueue = new JobQueue(maxConcurrent);
-            _running = new List<Operation>();
+            _workareaPath = workareaPath;
+            _executableName = executableName;
+            _running = new Dictionary<string, Process>();
         }
 
-        public void EnqueueJob(Operation operation)
+        protected override bool StartJob(Operation job)
         {
-            _jobQueue.Enqueue(operation);
-        }
-        
-        public int GetJobETA(Operation operation)
-        {
-            return 1;
-        }
+            try
+            {
+                var jobDir = Path.Combine(_workareaPath, job.Guid);
+                Directory.CreateDirectory(jobDir);
+                var execPath = FetchExecutables(job.Name, jobDir);
+                var started = Process.Start(execPath);
+                _running.Add(job.Guid, started);
+            }
+            catch(Exception ex)
+            {
+                return false;
+            }
 
-        public bool IsAlive()
-        {
             return true;
         }
 
-        public void Progress()
+        protected override bool StopJob(Operation job)
         {
-            var active = _jobQueue.Active;
-            var pollResults = PollJobs(active);
-            var oldActive = _jobQueue.Active;
-            var updated = _jobQueue.Update(pollResults);
+            var jobId = job.Guid;
 
-            if(!updated)
-                throw new Exception("Progress failed");
+            if (!_running.ContainsKey(jobId))
+                return false;
 
-            var newActive = _jobQueue.Active;
-            var toStart = (from j in newActive
-                           where !oldActive.Contains(j)
-                           select j).ToList();
+            var process = _running[jobId];
 
-            foreach (var job in toStart)
-                StartJob(job);
+            if(!process.HasExited)
+                process.Kill();
+
+            return true;
         }
 
-        public bool AbortJob(Operation operation)
+        protected override Dictionary<string, Status> PollJobs(List<Operation> jobs)
         {
-            return false;
+            var result = new Dictionary<string, Status>();
+
+            foreach (var job in jobs)
+            {
+                var jobId = job.Guid;
+
+                if (!_running.ContainsKey(jobId))
+                    continue;
+
+                var process = _running[jobId];
+
+                if (process.HasExited)
+                {
+                    if (process.ExitCode == 0)
+                        result[jobId] = Status.COMPLETED;
+                    else
+                        result[jobId] = Status.FAILED;
+                }
+                else
+                    result[jobId] = Status.RUNNING;
+            }
+
+            return result;
         }
 
-        private bool StartJob(Operation operation)
+        protected override List<MnemonicValue> FetchResults(List<Operation> completed)
         {
-            return false;
+            throw new NotImplementedException();
         }
 
-        private bool StopJob(Operation operation)
+        private string FetchExecutables(string name, string path)
         {
-            return false;
-        }
+            var method = _methodRepository.Find(name);
+            var execPath = Path.Combine(path, _executableName);
 
-        private Dictionary<string, Status> PollJobs(List<Operation> jobs)
-        {
-            return null;
+            using (var execFile = File.Open(execPath, FileMode.Create))
+            {
+                using (var writer = new StreamWriter(execFile))
+                {
+                    writer.Write(method.Binary);
+                }
+            }
+
+            return execPath;
         }
     }
 }

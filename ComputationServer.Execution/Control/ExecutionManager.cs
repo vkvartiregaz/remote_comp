@@ -19,8 +19,9 @@ namespace ComputationServer.Execution.Control
 {
     public class ExecutionManager : IExecutionManager
     {
-        private List<IScheduler> _schedulers = new List<IScheduler> { new NaiveScheduler() };
-        private List<IComputer> _computers = new List<IComputer> { new LocalComputer() };
+        private List<IScheduler> _schedulers;
+        private List<IComputer> _computers;
+        private List<Session> _sessions = new List<Session> { };
         private ISessionRepository _sessionRepository;
         
         public ExecutionManager(List<IScheduler> schedulers, 
@@ -52,15 +53,7 @@ namespace ComputationServer.Execution.Control
                 return null;
             }
 
-            var started = StartScheduled(schedule);
-
-            if (!started)
-            {
-                session.Status = Status.FAILED;
-                _sessionRepository.Update(session);
-                return null;
-            }
-
+            StartScheduled(schedule);
             session.Status = Status.RUNNING;
             _sessionRepository.Update(session);
 
@@ -91,7 +84,6 @@ namespace ComputationServer.Execution.Control
                 case Status.QUEUED:
                 case Status.RUNNING:
                 {
-                    //transaction start?
                     var aborted = AbortSession(toStop);
 
                     if (!aborted)
@@ -117,18 +109,14 @@ namespace ComputationServer.Execution.Control
             throw new NotImplementedException();
         }
         
-        private bool StartScheduled(Schedule schedule)
+        private void StartScheduled(Schedule schedule)
         {
             foreach (var entry in schedule.Assigned)
             {
                 var computer = entry.Value;
                 var job = entry.Key;
-
-                if (!computer.EnqueueJob(job))
-                    return false;
-            }
-
-            return true;
+                computer.EnqueueJob(job);                    
+            }            
         }
 
         private bool AbortSession(Session session)
@@ -139,7 +127,7 @@ namespace ComputationServer.Execution.Control
 
                 foreach(var job in fromSession)
                 {
-                    if(!c.StopJob(job))
+                    if(!c.AbortJob(job.Guid))
                         return false;
                 }
             }
@@ -184,18 +172,30 @@ namespace ComputationServer.Execution.Control
         {
             while (true)
             {
+                var changed = new List<Operation>();
+
                 foreach (var c in _computers)
-                    c.Progress();
+                    changed.InsertRange(0, c.Progress());
 
                 var activeStatuses = new List<Status> { Status.PROCESSING, Status.QUEUED, Status.RUNNING };
-                var activeSessions = _sessionRepository.FindAll(s => activeStatuses.Contains(s.Status));
+
+                var activeSessions = (from s in _sessions
+                                      where activeStatuses.Contains(s.Status)
+                                      select s).ToList();
 
                 foreach (var s in activeSessions)
                 {
-                    var sessionJobs = new List<Operation>();
+                    var toUpdate = (from op in changed
+                                     where op.SessionId == s.Id
+                                     select op).ToList();
 
-                    foreach (var c in _computers)
-                        sessionJobs.InsertRange(0, c.FindJobs(j => j.SessionId == s.Id));
+                    foreach(var operation in toUpdate)
+                    {
+                        var old = s.CompGraph.Operations.Where(op => op.Guid == operation.Guid).FirstOrDefault();
+                        old = operation;
+                    }
+
+                    var sessionJobs = s.CompGraph.Operations;
 
                     if (sessionJobs.All(j => j.Status == Status.COMPLETED))
                         s.Status = Status.COMPLETED;
@@ -231,10 +231,7 @@ namespace ComputationServer.Execution.Control
                 if (s.EstimatedTime < best.EstimatedTime)
                     best = s;
 
-            var started = StartScheduled(best);
-
-            if (!started)
-                return false;
+            StartScheduled(best);
 
             return true;
         }

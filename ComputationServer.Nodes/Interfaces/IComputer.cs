@@ -10,10 +10,9 @@ namespace ComputationServer.Nodes.Interfaces
     public interface IComputer
     {
         bool IsAlive();
-        void Progress();
-        int GetJobETA(Operation operation);
-        bool EnqueueJob(Operation operation);
-        bool AbortJob(Operation operation);
+        List<Operation> Progress();
+        void EnqueueJob(Operation operation);
+        bool AbortJob(string guid);
         List<Operation> FindJobs(Func<Operation, bool> condition);
         int TimeEstimate(Operation operation);
     }
