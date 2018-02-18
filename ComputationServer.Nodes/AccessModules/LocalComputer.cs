@@ -10,7 +10,7 @@ using ComputationServer.Data.Interfaces;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LocalComputer : GenericComputer
+    public class LocalComputer : DataProcessingComputer
     {
         private string _workareaPath;
         private string _executableName;
@@ -20,7 +20,7 @@ namespace ComputationServer.Nodes.AccessModules
             string workareaPath,
             IMethodRepository methodRepository,
             IOperationRepository operationRepository,
-            string executableName) : base(maxConcurrent, methodRepository, operationRepository)
+            string executableName) : base(maxConcurrent, methodRepository)
         {
             _workareaPath = workareaPath;
             _executableName = executableName;

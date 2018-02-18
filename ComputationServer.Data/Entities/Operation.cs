@@ -6,7 +6,7 @@ using System.Runtime.Serialization;
 namespace ComputationServer.Data.Models
 {
     [DataContract]
-    public class Operation
+    public class Operation : ICloneable
     {
         [DataMember(Name = "id")]
         public int LocalId { get; set; }
@@ -48,7 +48,7 @@ namespace ComputationServer.Data.Models
 
         private object _hold = new object();
 
-        public Operation Clone()
+        public object Clone()
         {
             var clone = new Operation();
             clone.Guid = Guid;

@@ -21,17 +21,16 @@ namespace ComputationServer.Execution.Control
     {
         private List<IScheduler> _schedulers;
         private List<IComputer> _computers;
-        private List<Session> _sessions = new List<Session> { };
-        private ISessionRepository _sessionRepository;
+        private ISessionManager _sessionManager;
         
         public ExecutionManager(List<IScheduler> schedulers, 
             List<IComputer> computers,
-            ISessionRepository sessionRepository,
+            ISessionManager sessionManager,
             int monitorInterval)
         {
             _schedulers = schedulers;
             _computers = computers;
-            _sessionRepository = sessionRepository;
+            _sessionManager = sessionManager;
 
             StartMonitor(monitorInterval);
         }
@@ -39,35 +38,33 @@ namespace ComputationServer.Execution.Control
 
         public string StartSession(Session session)
         {
-            var id = Guid.NewGuid().ToString();
-            session.Id = id;
-            session.Status = Status.PROCESSING;
-            _sessionRepository.Add(session);
+            if(!_sessionManager.RegisterSession(session))
+                return null;
 
             var schedule = ScheduleSession(session);
 
             if (schedule == null)
             {
                 session.Status = Status.FAILED;
-                _sessionRepository.Update(session);
+                _sessionManager.UpdateSession(session);
                 return null;
             }
 
             StartScheduled(schedule);
             session.Status = Status.RUNNING;
-            _sessionRepository.Update(session);
+            _sessionManager.UpdateSession(session);
 
-            return id;
+            return session.Id;
         }
 
         public Session GetSessionStatus(string id)
         {
-            return _sessionRepository.FindById(id);
+            return _sessionManager.FindSession(id);
         }
 
         public bool StopSession(string id)
         {
-            var toStop = _sessionRepository.FindById(id);
+            var toStop = _sessionManager.FindSession(id);
 
             if (toStop == null)
                 return true;
@@ -88,6 +85,9 @@ namespace ComputationServer.Execution.Control
 
                     if (!aborted)
                         return false;
+
+                    toStop.Status = Status.ABORTED;
+                    _sessionManager.UpdateSession(toStop);
 
                     return true;
                 }
@@ -177,36 +177,34 @@ namespace ComputationServer.Execution.Control
                 foreach (var c in _computers)
                     changed.InsertRange(0, c.Progress());
 
-                var activeStatuses = new List<Status> { Status.PROCESSING, Status.QUEUED, Status.RUNNING };
+                var activeSessions = _sessionManager.Active;
 
-                var activeSessions = (from s in _sessions
-                                      where activeStatuses.Contains(s.Status)
-                                      select s).ToList();
-
-                foreach (var s in activeSessions)
+                foreach (var session in activeSessions)
                 {
                     var toUpdate = (from op in changed
-                                     where op.SessionId == s.Id
+                                     where op.SessionId == session.Id
                                      select op).ToList();
 
                     foreach(var operation in toUpdate)
                     {
-                        var old = s.CompGraph.Operations.Where(op => op.Guid == operation.Guid).FirstOrDefault();
+                        var old = session.CompGraph.Operations.Where(op => op.Guid == operation.Guid).FirstOrDefault();
                         old = operation;
                     }
 
-                    var sessionJobs = s.CompGraph.Operations;
+                    var sessionJobs = session.CompGraph.Operations;
 
                     if (sessionJobs.All(j => j.Status == Status.COMPLETED))
-                        s.Status = Status.COMPLETED;
+                        session.Status = Status.COMPLETED;
                     
                     if(sessionJobs.Any(j => j.Status == Status.FAILED || j.Status == Status.UNKNOWN))
                     {
-                        var rescheduled = RescheduleSession(s);
+                        var rescheduled = RescheduleSession(session);
 
                         if (!rescheduled)
-                            s.Status = Status.FAILED;
+                            session.Status = Status.FAILED;
                     }
+
+                    _sessionManager.UpdateSession(session);
                 }
 
                 await Task.Delay(interval * 1000);

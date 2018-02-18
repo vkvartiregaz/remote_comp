@@ -5,7 +5,7 @@ using System.Runtime.Serialization;
 
 namespace ComputationServer.Data.Models
 {
-    public class Session
+    public class Session : ICloneable
     {
         [DataMember(Name = "id", IsRequired = false)]
         public string Id { get; set; }
@@ -21,6 +21,9 @@ namespace ComputationServer.Data.Models
 
         public Status Status { get; set; }
 
-        public Schedule Schedule { get; set; }
+        public object Clone()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

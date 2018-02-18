@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class TorqueComputer : GenericComputer
+    public class TorqueComputer : DataProcessingComputer
     {
-        public TorqueComputer(int maxConcurrent) : base(maxConcurrent) { }
+        public TorqueComputer(int maxConcurrent) : base(maxConcurrent, null) { }
 
         protected override bool StartJob(Operation operation)
         {

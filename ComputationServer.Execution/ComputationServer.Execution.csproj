@@ -13,6 +13,7 @@
     <ProjectReference Include="..\ComputationServer.Data\ComputationServer.Data.csproj" />
     <ProjectReference Include="..\ComputationServer.Nodes\ComputationServer.Nodes.csproj" />
     <ProjectReference Include="..\ComputationServer.Scheduling\ComputationServer.Scheduling.csproj" />
+    <ProjectReference Include="..\ComputationServer.Utility\ComputationServer.Utility.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@ using ComputationServer.Data.Models;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class DummyComputer : GenericComputer
+    public class DummyComputer : DataProcessingComputer
     {
         public DummyComputer(int maxConcurrent, IMethodRepository methodRepository) 
             : base(maxConcurrent, methodRepository) { }

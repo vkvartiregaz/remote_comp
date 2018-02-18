@@ -8,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LinuxComputer : GenericComputer
+    public class LinuxComputer : DataProcessingComputer
     {
-        public LinuxComputer(int maxConcurrent) : base(maxConcurrent) { }
+        public LinuxComputer(int maxConcurrent) : base(maxConcurrent, null) { }
 
         protected override bool StartJob(Operation operation)
         {

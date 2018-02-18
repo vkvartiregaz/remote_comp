@@ -8,12 +8,12 @@ using ComputationServer.Data.Interfaces;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public abstract class GenericComputer : IComputer
+    public abstract class DataProcessingComputer : IComputer
     {
-        private JobQueue _jobQueue;
-        private IMethodRepository _methodRepository;
+        protected JobQueue _jobQueue;
+        protected IMethodRepository _methodRepository;
 
-        public GenericComputer(int maxConcurrent,
+        public DataProcessingComputer(int maxConcurrent,
             IMethodRepository methodRepository)
         {
             _jobQueue = new JobQueue(maxConcurrent);
@@ -27,7 +27,7 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        public void Progress()
+        public List<Operation> Progress()
         {
             var oldActive = _jobQueue.Active;
             var pollResults = PollJobs(oldActive);

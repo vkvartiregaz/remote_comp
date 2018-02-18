@@ -10,6 +10,9 @@ namespace ComputationServer.Nodes.AccessModules
 {
     public class DataTransferComputer : IComputer
     {
+        protected IDataStorage _storage;
+        protected JobQueue _jobQueue;
+
         public bool AbortJob(string guid)
         {
             throw new NotImplementedException();
@@ -17,7 +20,8 @@ namespace ComputationServer.Nodes.AccessModules
 
         public void EnqueueJob(Operation operation)
         {
-            throw new NotImplementedException();
+            _storage.RequestData("data id here", operation.Input[0]);
+            _jobQueue.Enqueue(operation);
         }
 
         public List<Operation> FindJobs(Func<Operation, bool> condition)
@@ -30,12 +34,12 @@ namespace ComputationServer.Nodes.AccessModules
             throw new NotImplementedException();
         }
 
-        public void Progress()
+        public int TimeEstimate(Operation operation)
         {
             throw new NotImplementedException();
         }
 
-        public int TimeEstimate(Operation operation)
+        public List<Operation> Progress()
         {
             throw new NotImplementedException();
         }

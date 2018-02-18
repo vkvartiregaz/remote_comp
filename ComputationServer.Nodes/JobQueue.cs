@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using ComputationServer.Utility;
 
 namespace ComputationServer.Nodes
 {
@@ -33,7 +34,7 @@ namespace ComputationServer.Nodes
             {
                 lock(_queueState)
                 {
-                    return CopyAll(_completedJobs.ToList());
+                    return Replicator.CopyAll(_completedJobs.ToList());
                 }
             }
         }
@@ -44,7 +45,7 @@ namespace ComputationServer.Nodes
             {
                 lock (_queueState)
                 {
-                    return CopyAll(_failedJobs.ToList());
+                    return Replicator.CopyAll(_failedJobs.ToList());
                 }
             }
         }
@@ -55,7 +56,7 @@ namespace ComputationServer.Nodes
             {
                 lock (_queueState)
                 {
-                    return CopyAll(_activeJobs.ToList());
+                    return Replicator.CopyAll(_activeJobs.ToList());
                 }
             }
         }
@@ -90,7 +91,7 @@ namespace ComputationServer.Nodes
                                 where condition(op)
                                 select op).ToList();
 
-                return CopyAll(inPending, inActive, inCompleted, inFailed);
+                return Replicator.CopyAll(inPending, inActive, inCompleted, inFailed);
             }
         }
 
@@ -122,7 +123,7 @@ namespace ComputationServer.Nodes
                         continue;
 
                     var newStatus = updatedActive[job.Guid];
-                    var clone = job.Clone();
+                    var clone = job.Clone() as Operation;
 
                     clone.Status = newStatus;
 
@@ -137,14 +138,14 @@ namespace ComputationServer.Nodes
                         case Status.COMPLETED:
                             {
                                 newCompleted.Enqueue(clone);
-                                changed.Add(clone.Clone());
+                                changed.Add(clone.Clone() as Operation);
                                 break;
                             }
                         case Status.FAILED:
                         case Status.UNKNOWN:
                             {                                
                                 newFailed.Enqueue(clone);
-                                changed.Add(clone.Clone());
+                                changed.Add(clone.Clone() as Operation);
                                 break;
                             }
                         default:
@@ -161,10 +162,10 @@ namespace ComputationServer.Nodes
                     Operation toStart;
                     if (newPending.TryDequeue(out toStart))
                     {
-                        var clone = toStart.Clone();
+                        var clone = toStart.Clone() as Operation;
                         clone.Status = Status.RUNNING;
                         newActive.Enqueue(clone);
-                        changed.Add(clone.Clone());
+                        changed.Add(clone.Clone() as Operation);
                         deficit--;
                     }
                     else
@@ -188,19 +189,8 @@ namespace ComputationServer.Nodes
                 var active = _activeJobs.ToList();
                 var completed = _completedJobs.ToList();
                 var failed = _failedJobs.ToList();
-                return CopyAll(pending, active, completed, failed);
+                return Replicator.CopyAll(pending, active, completed, failed);
             }            
-        }
-
-        private List<Operation> CopyAll(params List<Operation>[] toCopy)
-        {
-            var result = new List<Operation>();
-
-            foreach (var list in toCopy)
-                foreach(var job in list)
-                    result.Add(job.Clone());
-
-            return result;
         }
     }
 }
