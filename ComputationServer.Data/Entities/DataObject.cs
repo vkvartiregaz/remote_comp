@@ -4,8 +4,10 @@ using System.Text;
 
 namespace ComputationServer.Data.Entities
 {
-    public enum Status
+    public class DataObject
     {
-        UNKNOWN, PROCESSING, QUEUED, RUNNING, COMPLETED, ABORTED, FAILED
+        public DataType Type { get; set; }
+
+        public string Id { get; set; }
     }
 }

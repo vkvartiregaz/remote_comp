@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.Serialization;
 
-namespace ComputationServer.Data.Models
+namespace ComputationServer.Data.Entities
 {
     public class Session : ICloneable
     {
@@ -11,7 +11,7 @@ namespace ComputationServer.Data.Models
         public string Id { get; set; }
 
         [DataMember(Name = "computationGraph")]
-        public ComputationGraph CompGraph { get; set; }
+        public List<Job> Jobs { get; set; }
 
         [DataMember(Name = "deadline", IsRequired = false)]
         public DateTime Deadline { get; set; }

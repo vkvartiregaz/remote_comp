@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -27,7 +27,7 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        public List<Operation> Progress()
+        public List<Job> Progress()
         {
             var oldActive = _jobQueue.Active;
             var pollResults = PollJobs(oldActive);
@@ -49,7 +49,7 @@ namespace ComputationServer.Nodes.AccessModules
             return updated;
         }
 
-        public void EnqueueJob(Operation operation)
+        public void EnqueueJob(Job operation)
         {
             _jobQueue.Enqueue(operation);
         }
@@ -70,12 +70,12 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
                 
-        public List<Operation> FindJobs(Func<Operation, bool> condition)
+        public List<Job> FindJobs(Func<Job, bool> condition)
         {
             return _jobQueue.Find(condition);
         }
 
-        public int TimeEstimate(Operation operation)
+        public int TimeEstimate(Job operation)
         {
             throw new NotImplementedException();
         }
@@ -84,13 +84,13 @@ namespace ComputationServer.Nodes.AccessModules
 
         #region Abstract Methods
 
-        protected abstract bool StartJob(Operation operation);
+        protected abstract bool StartJob(Job operation);
 
-        protected abstract bool StopJob(Operation operation);
+        protected abstract bool StopJob(Job operation);
 
-        protected abstract Dictionary<string, Status> PollJobs(List<Operation> jobs);
+        protected abstract Dictionary<string, Status> PollJobs(List<Job> jobs);
 
-        protected abstract List<MnemonicValue> FetchResults(List<Operation> completed);
+        protected abstract List<MnemonicValue> FetchResults(List<Job> completed);
 
         #endregion
     }

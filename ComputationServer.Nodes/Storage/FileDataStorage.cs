@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;

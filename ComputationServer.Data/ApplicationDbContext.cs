@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -9,6 +9,6 @@ namespace ComputationServer.Data
     public class ApplicationDbContext : DbContext
     {
         public DbSet<Session> Sessions { get; set; }
-        public DbSet<Operation> Operations { get; set; }
+        public DbSet<Job> Operations { get; set; }
     }
 }

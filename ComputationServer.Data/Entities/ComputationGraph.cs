@@ -4,13 +4,13 @@ using System.Text;
 using System.Runtime.Serialization;
 
 
-namespace ComputationServer.Data.Models
+namespace ComputationServer.Data.Entities
 {
     [DataContract]
     public class ComputationGraph
     {
         [DataMember(Name = "operations")]
-        public List<Operation> Operations { get; set; }
+        public List<Job> Operations { get; set; }
 
         [DataMember(Name = "dependencies")]
         public List<List<int>> Dependencies { get; set; }

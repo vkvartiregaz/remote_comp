@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.Serialization;
 
-namespace ComputationServer.Data.Models
+namespace ComputationServer.Data.Entities
 {
     [DataContract]
-    public class Operation : ICloneable
+    public class Job : ICloneable
     {
         [DataMember(Name = "id")]
         public int LocalId { get; set; }
@@ -15,10 +15,12 @@ namespace ComputationServer.Data.Models
         public string Name { get; set; }
 
         [DataMember(Name = "input", IsRequired = false)]
-        public List<DataType> Input { get; set; }
+        public List<DataObject> Input { get; set; }
 
         [DataMember(Name = "output", IsRequired = false)]
-        public List<DataType> Output { get; set; }
+        public List<DataObject> Output { get; set; }
+
+        public List<string> Dependencies { get; set; }
 
         private Status _status;
 
@@ -42,7 +44,7 @@ namespace ComputationServer.Data.Models
             }
         }
 
-        public string SessionId { get; set; }
+        public Session Session { get; set; }
 
         public string Guid { get; set; }
 
@@ -50,14 +52,14 @@ namespace ComputationServer.Data.Models
 
         public object Clone()
         {
-            var clone = new Operation();
+            var clone = new Job();
             clone.Guid = Guid;
             clone.LocalId = LocalId;
             clone.Name = Name;
             clone.Input = Input;
             clone.Output = Output;
             clone.Status = Status;
-            clone.SessionId = SessionId;
+            clone.Session = Session;
             return clone;
         }
     }

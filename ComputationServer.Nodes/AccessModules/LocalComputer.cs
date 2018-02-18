@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,6 @@ namespace ComputationServer.Nodes.AccessModules
         public LocalComputer(int maxConcurrent, 
             string workareaPath,
             IMethodRepository methodRepository,
-            IOperationRepository operationRepository,
             string executableName) : base(maxConcurrent, methodRepository)
         {
             _workareaPath = workareaPath;
@@ -27,7 +26,7 @@ namespace ComputationServer.Nodes.AccessModules
             _running = new Dictionary<string, Process>();
         }
 
-        protected override bool StartJob(Operation job)
+        protected override bool StartJob(Job job)
         {
             try
             {
@@ -45,7 +44,7 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        protected override bool StopJob(Operation job)
+        protected override bool StopJob(Job job)
         {
             var jobId = job.Guid;
 
@@ -60,7 +59,7 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        protected override Dictionary<string, Status> PollJobs(List<Operation> jobs)
+        protected override Dictionary<string, Status> PollJobs(List<Job> jobs)
         {
             var result = new Dictionary<string, Status>();
 
@@ -87,7 +86,7 @@ namespace ComputationServer.Nodes.AccessModules
             return result;
         }
 
-        protected override List<MnemonicValue> FetchResults(List<Operation> completed)
+        protected override List<MnemonicValue> FetchResults(List<Job> completed)
         {
             throw new NotImplementedException();
         }

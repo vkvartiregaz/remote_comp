@@ -1,5 +1,5 @@
 ﻿using ComputationServer.Data.Interfaces;
-using ComputationServer.Data.Models;
+using ComputationServer.Data.Entities;
 using ComputationServer.Execution.Interfaces;
 using ComputationServer.Utility;
 using System;

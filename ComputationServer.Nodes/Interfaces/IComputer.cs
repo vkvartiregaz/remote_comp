@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,10 +10,10 @@ namespace ComputationServer.Nodes.Interfaces
     public interface IComputer
     {
         bool IsAlive();
-        List<Operation> Progress();
-        void EnqueueJob(Operation operation);
+        List<Job> Progress();
+        void EnqueueJob(Job operation);
         bool AbortJob(string guid);
-        List<Operation> FindJobs(Func<Operation, bool> condition);
-        int TimeEstimate(Operation operation);
+        List<Job> FindJobs(Func<Job, bool> condition);
+        int TimeEstimate(Job operation);
     }
 }

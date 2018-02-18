@@ -1,0 +1,6 @@
+Execution manager must see all job queues for all computer nodes (new data structure: queue and an access module)
+polling logic is in an access module, job update logic is in execution manager.
+session manager takes over everything about tracking session progress.
+Questions: data transfer tasks trigger? is it to be treated the same as other computer tasks in some regard?
+where to track job-computer assignment and is it needed at all?
+ADD JOB START CONDITIONS. might need a really custom queue. with priorities and such. one 'queue' with a list of concurrentqueues sorted by priority? job cannot start yet? goes into 0 priority queue. probably just a 0 and 1 priorities, since more will further complicate scheduling. Maybe as a development for masters?

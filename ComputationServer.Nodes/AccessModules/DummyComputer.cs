@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using ComputationServer.Data.Interfaces;
-using ComputationServer.Data.Models;
+using ComputationServer.Data.Entities;
 
 namespace ComputationServer.Nodes.AccessModules
 {
@@ -11,12 +11,12 @@ namespace ComputationServer.Nodes.AccessModules
         public DummyComputer(int maxConcurrent, IMethodRepository methodRepository) 
             : base(maxConcurrent, methodRepository) { }
 
-        protected override List<MnemonicValue> FetchResults(List<Operation> completed)
+        protected override List<MnemonicValue> FetchResults(List<Job> completed)
         {
             throw new NotImplementedException();
         }
 
-        protected override Dictionary<string, Status> PollJobs(List<Operation> jobs)
+        protected override Dictionary<string, Status> PollJobs(List<Job> jobs)
         {
             var result = new Dictionary<string, Status>();
 
@@ -32,12 +32,12 @@ namespace ComputationServer.Nodes.AccessModules
             return result;
         }
 
-        protected override bool StartJob(Operation operation)
+        protected override bool StartJob(Job operation)
         {
             return true;
         }
 
-        protected override bool StopJob(Operation operation)
+        protected override bool StopJob(Job operation)
         {
             return true;
         }

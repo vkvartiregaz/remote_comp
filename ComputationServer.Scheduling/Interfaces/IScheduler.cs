@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using ComputationServer.Nodes.Interfaces;
 using ComputationServer.Scheduling.Models;
 using System;

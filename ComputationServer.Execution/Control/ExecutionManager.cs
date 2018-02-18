@@ -6,7 +6,7 @@ using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using ComputationServer.Data.Models;
+using ComputationServer.Data.Entities;
 using ComputationServer.Scheduling.Interfaces;
 using ComputationServer.Scheduling.Schedulers;
 using ComputationServer.Nodes.Interfaces;
@@ -123,7 +123,7 @@ namespace ComputationServer.Execution.Control
         {
             foreach (var c in _computers)
             {
-                var fromSession = c.FindJobs(job => job.SessionId == session.Id);
+                var fromSession = c.FindJobs(job => job.Session.Id == session.Id);
 
                 foreach(var job in fromSession)
                 {
@@ -172,7 +172,7 @@ namespace ComputationServer.Execution.Control
         {
             while (true)
             {
-                var changed = new List<Operation>();
+                var changed = new List<Job>();
 
                 foreach (var c in _computers)
                     changed.InsertRange(0, c.Progress());
@@ -182,16 +182,16 @@ namespace ComputationServer.Execution.Control
                 foreach (var session in activeSessions)
                 {
                     var toUpdate = (from op in changed
-                                     where op.SessionId == session.Id
+                                     where op.Session.Id == session.Id
                                      select op).ToList();
 
                     foreach(var operation in toUpdate)
                     {
-                        var old = session.CompGraph.Operations.Where(op => op.Guid == operation.Guid).FirstOrDefault();
+                        var old = session.Jobs.Where(op => op.Guid == operation.Guid).FirstOrDefault();
                         old = operation;
                     }
 
-                    var sessionJobs = session.CompGraph.Operations;
+                    var sessionJobs = session.Jobs;
 
                     if (sessionJobs.All(j => j.Status == Status.COMPLETED))
                         session.Status = Status.COMPLETED;

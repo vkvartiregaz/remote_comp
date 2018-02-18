@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -10,25 +10,25 @@ namespace ComputationServer.Nodes
 {
     public class JobQueue
     {
-        private ConcurrentQueue<Operation> _pendingJobs;
-        private ConcurrentQueue<Operation> _activeJobs;
-        private ConcurrentQueue<Operation> _completedJobs;
-        private ConcurrentQueue<Operation> _failedJobs;
+        private ConcurrentQueue<Job> _pendingJobs;
+        private ConcurrentQueue<Job> _activeJobs;
+        private ConcurrentQueue<Job> _completedJobs;
+        private ConcurrentQueue<Job> _failedJobs;
         private int _maxConcurrent;
         private object _queueState = new object();
         
         public JobQueue(int maxConcurrent)
         {
             _maxConcurrent = maxConcurrent;
-            _pendingJobs = new ConcurrentQueue<Operation>();
-            _activeJobs = new ConcurrentQueue<Operation>();
-            _completedJobs = new ConcurrentQueue<Operation>();
-            _failedJobs = new ConcurrentQueue<Operation>();
+            _pendingJobs = new ConcurrentQueue<Job>();
+            _activeJobs = new ConcurrentQueue<Job>();
+            _completedJobs = new ConcurrentQueue<Job>();
+            _failedJobs = new ConcurrentQueue<Job>();
         }
 
         #region Queue State Access
 
-        public List<Operation> Completed
+        public List<Job> Completed
         {
             get
             {
@@ -39,7 +39,7 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public List<Operation> Failed
+        public List<Job> Failed
         {
             get
             {
@@ -50,7 +50,7 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public List<Operation> Active
+        public List<Job> Active
         {
             get
             {
@@ -63,7 +63,7 @@ namespace ComputationServer.Nodes
 
         #endregion
 
-        public void Enqueue(Operation job)
+        public void Enqueue(Job job)
         {
             lock(_queueState)
             {
@@ -71,7 +71,7 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public List<Operation> Find(Func<Operation, bool> condition)
+        public List<Job> Find(Func<Job, bool> condition)
         {
             lock (_queueState)
             {
@@ -95,13 +95,13 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public List<Operation> Update(Dictionary<string, Status> updatedActive)
+        public List<Job> Update(Dictionary<string, Status> updatedActive)
         {
-            var newActive = new ConcurrentQueue<Operation>();
-            var newPending = new ConcurrentQueue<Operation>();
-            var newCompleted = new ConcurrentQueue<Operation>();
-            var newFailed = new ConcurrentQueue<Operation>();
-            var changed = new List<Operation>();
+            var newActive = new ConcurrentQueue<Job>();
+            var newPending = new ConcurrentQueue<Job>();
+            var newCompleted = new ConcurrentQueue<Job>();
+            var newFailed = new ConcurrentQueue<Job>();
+            var changed = new List<Job>();
 
             lock (_queueState)
             {
@@ -119,33 +119,30 @@ namespace ComputationServer.Nodes
                 
                 foreach (var job in activeCopy)
                 {
-                    if (!updatedActive.ContainsKey(job.Guid))
-                        continue;
-
-                    var newStatus = updatedActive[job.Guid];
-                    var clone = job.Clone() as Operation;
-
-                    clone.Status = newStatus;
-
-                    switch (newStatus)
+                    if (updatedActive.ContainsKey(job.Guid))
+                    {
+                        var newStatus = updatedActive[job.Guid];
+                        job.Status = newStatus;
+                        changed.Add(job.Clone() as Job);
+                    }                    
+                    
+                    switch (job.Status)
                     {
                         case Status.RUNNING:
                             {
-                                newActive.Enqueue(clone);
+                                newActive.Enqueue(job);
                                 break;
                             }
 
                         case Status.COMPLETED:
                             {
-                                newCompleted.Enqueue(clone);
-                                changed.Add(clone.Clone() as Operation);
+                                newCompleted.Enqueue(job);                                
                                 break;
                             }
                         case Status.FAILED:
                         case Status.UNKNOWN:
                             {                                
-                                newFailed.Enqueue(clone);
-                                changed.Add(clone.Clone() as Operation);
+                                newFailed.Enqueue(job);
                                 break;
                             }
                         default:
@@ -159,13 +156,12 @@ namespace ComputationServer.Nodes
 
                 while (deficit > 0)
                 {
-                    Operation toStart;
+                    Job toStart;
                     if (newPending.TryDequeue(out toStart))
-                    {
-                        var clone = toStart.Clone() as Operation;
-                        clone.Status = Status.RUNNING;
-                        newActive.Enqueue(clone);
-                        changed.Add(clone.Clone() as Operation);
+                    {                        
+                        toStart.Status = Status.RUNNING;
+                        newActive.Enqueue(toStart);
+                        changed.Add(toStart.Clone() as Job);
                         deficit--;
                     }
                     else
@@ -181,7 +177,7 @@ namespace ComputationServer.Nodes
             return changed;
         }
 
-        public List<Operation> GetAll()
+        public List<Job> GetAll()
         {
             lock (_queueState)
             {

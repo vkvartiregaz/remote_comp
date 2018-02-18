@@ -1,4 +1,4 @@
-﻿using ComputationServer.Data.Models;
+﻿using ComputationServer.Data.Entities;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -18,13 +18,13 @@ namespace ComputationServer.Nodes.AccessModules
             throw new NotImplementedException();
         }
 
-        public void EnqueueJob(Operation operation)
+        public void EnqueueJob(Job operation)
         {
-            _storage.RequestData("data id here", operation.Input[0]);
+            _storage.RequestData("data id here", operation.Input[0].Type);
             _jobQueue.Enqueue(operation);
         }
 
-        public List<Operation> FindJobs(Func<Operation, bool> condition)
+        public List<Job> FindJobs(Func<Job, bool> condition)
         {
             throw new NotImplementedException();
         }
@@ -34,12 +34,12 @@ namespace ComputationServer.Nodes.AccessModules
             throw new NotImplementedException();
         }
 
-        public int TimeEstimate(Operation operation)
+        public int TimeEstimate(Job operation)
         {
             throw new NotImplementedException();
         }
 
-        public List<Operation> Progress()
+        public List<Job> Progress()
         {
             throw new NotImplementedException();
         }
