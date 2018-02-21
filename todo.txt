@@ -1,6 +1,15 @@
-Execution manager must see all job queues for all computer nodes (new data structure: queue and an access module)
-polling logic is in an access module, job update logic is in execution manager.
-session manager takes over everything about tracking session progress.
+NO! Execution manager must see all job queues for all computer nodes (new data structure: queue and an access module)
+MAYBE? PROBABLY NO! polling logic is in an access module, job update logic is in execution manager.
+NATURALLY! session manager takes over everything about tracking session progress.
 Questions: data transfer tasks trigger? is it to be treated the same as other computer tasks in some regard?
-where to track job-computer assignment and is it needed at all?
-ADD JOB START CONDITIONS. might need a really custom queue. with priorities and such. one 'queue' with a list of concurrentqueues sorted by priority? job cannot start yet? goes into 0 priority queue. probably just a 0 and 1 priorities, since more will further complicate scheduling. Maybe as a development for masters?
+ANSWER FOUND! (kinda) Mostly as other tasks, but with regards to data markers; Concurrent limit is probably needed by pending data size for each node involved; we distributed storage nao!
+NOT NEEDED, IT IS IN JOB QUEUE! where to track job-computer assignment and is it needed at all?
+SOLVED! SEE BELOW! Add job start conditions. might need a really custom queue. with priorities and such. one 'queue' with a list of concurrentqueues sorted by priority? job cannot start yet? goes into 0 priority queue. probably just a 0 and 1 priorities, since more will further complicate scheduling. Maybe as a development for masters?
+
+Job start condition: add data is available on the assigned execution site;
+Job queue has a "0 priority pending" sub-queue, for jobs that where taken from normal pending queue, but were not ready to execute yet. 0pp sub-queue is looped.
+Data markers: 
+-To be queried; we Jon Snow; every ref type before storage has been queried and response has been received
+-To be created; data is being created (!); for data that is either being pre-processed by storage, or is a result of a job that has not yet finished;
+-Available; data is available for transfer; has transfer source parameter (storage, execution node or local, for value types); all value types by default
+
