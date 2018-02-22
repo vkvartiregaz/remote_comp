@@ -10,7 +10,7 @@ namespace ComputationServer.Data.Entities
         [DataMember(Name = "id", IsRequired = false)]
         public string Id { get; set; }
 
-        [DataMember(Name = "computationGraph")]
+        //[DataMember(Name = "computationGraph")]
         public List<Job> Jobs { get; set; }
 
         [DataMember(Name = "deadline", IsRequired = false)]

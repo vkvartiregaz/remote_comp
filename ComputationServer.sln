@@ -13,7 +13,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Schedulin
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Test", "ComputationServer.Test\ComputationServer.Test.csproj", "{E0E31668-D487-4E91-867D-C6DE3C667FA9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationServer.Utility", "ComputationServer.Utility\ComputationServer.Utility.csproj", "{82B5603F-7984-4B8D-AF92-1392870A3FD6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ComputationServer.Utility", "ComputationServer.Utility\ComputationServer.Utility.csproj", "{82B5603F-7984-4B8D-AF92-1392870A3FD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ComputationServer.WebService", "ComputationServer.WebService\ComputationServer.WebService.csproj", "{AAD50B85-67E3-4E8C-A969-630D33DED549}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{82B5603F-7984-4B8D-AF92-1392870A3FD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{82B5603F-7984-4B8D-AF92-1392870A3FD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{82B5603F-7984-4B8D-AF92-1392870A3FD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAD50B85-67E3-4E8C-A969-630D33DED549}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAD50B85-67E3-4E8C-A969-630D33DED549}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAD50B85-67E3-4E8C-A969-630D33DED549}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAD50B85-67E3-4E8C-A969-630D33DED549}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
