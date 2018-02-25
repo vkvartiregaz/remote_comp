@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Chilkat;
 
 namespace ComputationServer.Nodes.AccessModules
 {
@@ -14,7 +15,8 @@ namespace ComputationServer.Nodes.AccessModules
 
         protected override bool StartJob(Job operation)
         {
-            throw new NotImplementedException();
+            var ssh = new Ssh();
+            return false;
         }
 
         protected override bool StopJob(Job operation)

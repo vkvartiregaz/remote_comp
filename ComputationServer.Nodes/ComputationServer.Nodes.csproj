@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ChilkatDnCore" Version="9.5.0.72" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ComputationServer.Data\ComputationServer.Data.csproj" />
     <ProjectReference Include="..\ComputationServer.Utility\ComputationServer.Utility.csproj" />
   </ItemGroup>
