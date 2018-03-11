@@ -13,3 +13,11 @@ Data markers:
 -To be created; data is being created (!); for data that is either being pre-processed by storage, or is a result of a job that has not yet finished;
 -Available; data is available for transfer; has transfer source parameter (storage, execution node or local, for value types); all value types by default
 
+11.03
+1) перестать писать себе напоминалки на англицком
+2) трансляция сессии в более удобный внутренний формат (заодно разработать формат)
+3) накарябать новое апи в сваггере и убедить компилятора его использовать
+4) проработать весь стек
+5) допилить шедулёра. кто такой GRASP и с чем его едят? как блджад частицы двигаются? кто знает...
+6) тестики!
+
