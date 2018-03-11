@@ -77,7 +77,8 @@ namespace ComputationServer.Nodes.AccessModules
 
         public int TimeEstimate(Job operation)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("TimeEstimate stub");
+            return 12;
         }
 
         #endregion

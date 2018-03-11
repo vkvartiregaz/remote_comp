@@ -10,10 +10,8 @@ using System.Linq;
 namespace ComputationServer.Execution.Control
 {
     public class SessionManager : ISessionManager
-    {
-        
+    {        
         private ConcurrentDictionary<string, Session> _sessions = new ConcurrentDictionary<string, Session>();
-        private ISessionRepository _sessionRepository;
         private object _sessionsState = new object();
 
         public List<Session> Active
@@ -32,9 +30,9 @@ namespace ComputationServer.Execution.Control
             }
         }
 
-        public SessionManager(ISessionRepository sessionRepository)
+        public SessionManager()
         {
-            _sessionRepository = sessionRepository;
+            
         }
 
         public bool ArchiveSession(Session session)
@@ -67,15 +65,6 @@ namespace ComputationServer.Execution.Control
             {
                 if (!_sessions.TryAdd(id, session))
                     return false;
-            }
-
-            try
-            {                               
-                _sessionRepository.Add(session);
-            }
-            catch
-            {
-                return false;
             }
 
             return true;

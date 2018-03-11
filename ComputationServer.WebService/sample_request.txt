@@ -1,0 +1,87 @@
+﻿{
+    "computationGraph" : 
+	{
+		"operations": 
+		[
+			{
+				"id": 0,
+				"name": "op numba van",
+				"input": ["A"],
+				"output": ["x"]
+			},
+			{
+				"id": 1,
+				"name": "op numba two",
+				"input": ["B"],
+				"output": ["y"]
+			},
+			{
+				"id": 2,
+				"name": "op numba three",
+				"input": ["x", "y"],
+				"output":["z"]
+			}  
+		],
+		"dependencies": [[], [], [1,2]],
+		"mnemonicsTable": 
+		{
+			"A":
+			{
+				"value": "critte!",
+				"type":
+				{
+					"name": "type0",
+					"parameters": 
+					[
+						{
+							"name": "type43",
+							"parameters": []
+						},
+						{
+							"name": "type34",
+							"parameters": []
+						}
+					]
+				}
+			},
+			"x":
+			{
+				"value": "shuba",
+				"type":
+				{
+					"name": "string",
+					"parameters": []
+				}
+			},
+			"y":
+			{
+				"value": "shuba",
+				"type":
+				{
+					"name": "type0",
+					"parameters": []
+				}
+			},
+			"z":
+			{
+				"value": "12",
+				"type": 
+				{
+					"name": "type0",
+					"parameters": []
+				}
+			},
+			"B":
+			{
+				"value": "12",
+				"type": 
+				{
+					"name": "type0",
+					"parameters": []
+				}
+			}
+		}
+	},
+    "deadline" : "11-11-2018",
+    "budget" : 100.5
+}

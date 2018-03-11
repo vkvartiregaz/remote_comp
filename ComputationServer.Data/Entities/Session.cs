@@ -11,7 +11,7 @@ namespace ComputationServer.Data.Entities
         public string Id { get; set; }
 
         //[DataMember(Name = "computationGraph")]
-        public List<Job> Jobs { get; set; }
+        public List<Job> Jobs { get; set; } = new List<Job>();
 
         [DataMember(Name = "deadline", IsRequired = false)]
         public DateTime Deadline { get; set; }
@@ -23,7 +23,16 @@ namespace ComputationServer.Data.Entities
 
         public object Clone()
         {
-            throw new NotImplementedException();
+            var result = new Session();
+            result.Id = this.Id;
+            result.Deadline = this.Deadline;
+            result.Budget = this.Budget;
+            result.Status = this.Status;
+
+            foreach (var job in this.Jobs)
+                result.Jobs.Add(job.Clone() as Job);
+
+            return result;
         }
     }
 }

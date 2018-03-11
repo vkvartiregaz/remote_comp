@@ -88,7 +88,8 @@ namespace ComputationServer.Nodes.AccessModules
 
         protected override List<MnemonicValue> FetchResults(List<Job> completed)
         {
-            throw new NotImplementedException();
+            Console.WriteLine("FetchResults stub");
+            return null;
         }
 
         private string FetchExecutables(string name, string path)

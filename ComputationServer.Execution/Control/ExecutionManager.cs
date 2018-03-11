@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Linq;
-using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using ComputationServer.Data.Entities;
 using ComputationServer.Scheduling.Interfaces;
 using ComputationServer.Scheduling.Schedulers;
@@ -19,13 +19,55 @@ namespace ComputationServer.Execution.Control
 {
     public class ExecutionManager : IExecutionManager
     {
-        private List<IScheduler> _schedulers;
         private List<IComputer> _computers;
-        private ISessionManager _sessionManager;
-        
-        public ExecutionManager(List<IScheduler> schedulers, 
-            List<IComputer> computers,
-            ISessionManager sessionManager,
+        private List<IScheduler> _schedulers;
+        private SessionManager _sessionManager;
+
+        private static ExecutionManager _instance = null;
+
+        public static ExecutionManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    var computers = GetComputers();
+                    var schedulers = GetSchedulers();
+                    var interval = GetMonitorInterval();
+
+                    _instance = new ExecutionManager(computers, schedulers, new SessionManager(), interval);
+                }
+
+                return _instance;
+            }
+        }
+
+        private static List<IComputer> GetComputers()
+        {
+            var computers = new List<IComputer>();
+
+            computers.Add(new LocalComputer(4, "C:\\rc_workarea", null, "what"));
+
+            return computers;
+        }
+
+        private static List<IScheduler> GetSchedulers()
+        {
+            var schedulers = new List<IScheduler>();
+
+            schedulers.Add(new NaiveScheduler());
+
+            return schedulers;
+        }
+
+        private static int GetMonitorInterval()
+        {
+            return 30;
+        }
+
+        private ExecutionManager(List<IComputer> computers,
+            List<IScheduler> schedulers,
+            SessionManager sessionManager,
             int monitorInterval)
         {
             _schedulers = schedulers;

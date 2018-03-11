@@ -16,9 +16,16 @@ namespace ComputationServer.Scheduling.Schedulers
             throw new NotImplementedException();
         }
 
-        public Task<Schedule> ScheduleSessionAsync(Session session, List<IComputer> computers)
+        public async Task<Schedule> ScheduleSessionAsync(Session session, List<IComputer> computers)
         {
-            throw new NotImplementedException();
+            var result = new Schedule();
+
+            foreach (var job in session.Jobs)
+            {
+                result.Assigned.Add(job, computers[0]);
+            }
+
+            return result;
         }
     }
 }

@@ -75,7 +75,7 @@ namespace ComputationServer.Scheduling.Schedulers
 
         private void UpdateVelocity(Particle particle)
         {
-            var oldV = particle.Velocity.Pairs;
+            /*var oldV = particle.Velocity.Pairs;
             var newV = new List<List<Assignment>>();
             
             for(int i = 0; i < oldV.Count; ++i)
@@ -93,7 +93,7 @@ namespace ComputationServer.Scheduling.Schedulers
                 newV.Add(curr);
             }
 
-            particle.Velocity = newV;
+            particle.Velocity = newV;*/
         }
 
         private class Particle

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using ComputationServer.Data.Entities;
+using ComputationServer.Execution.Control;
+using ComputationServer.WebService.Models;
 
 namespace ComputationServer.WebService.Controllers
 {
@@ -19,9 +21,15 @@ namespace ComputationServer.WebService.Controllers
 
         // POST api/<controller>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody]Session session)
+        public async Task<IActionResult> Post([FromBody]SessionRequest session)
         {
-            return Ok($"post works for sessionId = {session.Id}");
+            var execManager = ExecutionManager.Instance;
+            var sessionId = execManager.StartSession(new Session());
+
+            if (sessionId == null)
+                return BadRequest();
+            
+            return Ok(sessionId);
         }
 
         // PUT api/<controller>/5
