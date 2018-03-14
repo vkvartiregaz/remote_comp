@@ -14,6 +14,7 @@ using ComputationServer.Nodes.AccessModules;
 using ComputationServer.Data.Interfaces;
 using ComputationServer.Execution.Interfaces;
 using ComputationServer.Scheduling.Models;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Execution.Control
 {
@@ -87,13 +88,13 @@ namespace ComputationServer.Execution.Control
 
             if (schedule == null)
             {
-                session.Status = Status.FAILED;
+                session.Status = ExecutionStatus.FAILED;
                 _sessionManager.UpdateSession(session);
                 return null;
             }
 
             StartScheduled(schedule);
-            session.Status = Status.RUNNING;
+            session.Status = ExecutionStatus.RUNNING;
             _sessionManager.UpdateSession(session);
 
             return session.Id;
@@ -113,28 +114,28 @@ namespace ComputationServer.Execution.Control
 
             switch(toStop.Status)
             {
-                case Status.COMPLETED:
-                case Status.ABORTED:
-                case Status.FAILED:
+                case ExecutionStatus.COMPLETED:
+                case ExecutionStatus.ABORTED:
+                case ExecutionStatus.FAILED:
                 {
                     return true;
                 }
-                case Status.PROCESSING:
-                case Status.QUEUED:
-                case Status.RUNNING:
+                case ExecutionStatus.PROCESSING:
+                case ExecutionStatus.QUEUED:
+                case ExecutionStatus.RUNNING:
                 {
                     var aborted = AbortSession(toStop);
 
                     if (!aborted)
                         return false;
 
-                    toStop.Status = Status.ABORTED;
+                    toStop.Status = ExecutionStatus.ABORTED;
                     _sessionManager.UpdateSession(toStop);
 
                     return true;
                 }
 
-                case Status.UNKNOWN:
+                case ExecutionStatus.UNKNOWN:
                 {
                     return false;
                 }
@@ -235,15 +236,15 @@ namespace ComputationServer.Execution.Control
 
                     var sessionJobs = session.Jobs;
 
-                    if (sessionJobs.All(j => j.Status == Status.COMPLETED))
-                        session.Status = Status.COMPLETED;
+                    if (sessionJobs.All(j => j.Status == ExecutionStatus.COMPLETED))
+                        session.Status = ExecutionStatus.COMPLETED;
                     
-                    if(sessionJobs.Any(j => j.Status == Status.FAILED || j.Status == Status.UNKNOWN))
+                    if(sessionJobs.Any(j => j.Status == ExecutionStatus.FAILED || j.Status == ExecutionStatus.UNKNOWN))
                     {
                         var rescheduled = RescheduleSession(session);
 
                         if (!rescheduled)
-                            session.Status = Status.FAILED;
+                            session.Status = ExecutionStatus.FAILED;
                     }
 
                     _sessionManager.UpdateSession(session);

@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using ComputationServer.Utility;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes
 {
@@ -95,7 +96,7 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public List<Job> Update(Dictionary<string, Status> updatedActive)
+        public List<Job> Update(Dictionary<string, ExecutionStatus> updatedActive)
         {
             var newActive = new ConcurrentQueue<Job>();
             var newPending = new ConcurrentQueue<Job>();
@@ -128,19 +129,19 @@ namespace ComputationServer.Nodes
                     
                     switch (job.Status)
                     {
-                        case Status.RUNNING:
+                        case ExecutionStatus.RUNNING:
                             {
                                 newActive.Enqueue(job);
                                 break;
                             }
 
-                        case Status.COMPLETED:
+                        case ExecutionStatus.COMPLETED:
                             {
                                 newCompleted.Enqueue(job);                                
                                 break;
                             }
-                        case Status.FAILED:
-                        case Status.UNKNOWN:
+                        case ExecutionStatus.FAILED:
+                        case ExecutionStatus.UNKNOWN:
                             {                                
                                 newFailed.Enqueue(job);
                                 break;
@@ -159,7 +160,7 @@ namespace ComputationServer.Nodes
                     Job toStart;
                     if (newPending.TryDequeue(out toStart))
                     {                        
-                        toStart.Status = Status.RUNNING;
+                        toStart.Status = ExecutionStatus.RUNNING;
                         newActive.Enqueue(toStart);
                         changed.Add(toStart.Clone() as Job);
                         deficit--;

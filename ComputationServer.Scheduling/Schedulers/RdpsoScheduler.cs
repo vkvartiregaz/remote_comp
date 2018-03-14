@@ -11,7 +11,7 @@ namespace ComputationServer.Scheduling.Schedulers
 {
     public class RdpsoScheduler : IScheduler
     {
-        private int _particleCount;
+        private int _particleCount = 20;
         private int _itCount;
         private double _inertiaWeight;
         private double _accelCoef1;

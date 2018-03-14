@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Chilkat;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
@@ -24,7 +25,7 @@ namespace ComputationServer.Nodes.AccessModules
             throw new NotImplementedException();
         }
 
-        protected override Dictionary<string, Status> PollJobs(List<Job> jobs)
+        protected override Dictionary<string, ExecutionStatus> PollJobs(List<Job> jobs)
         {
             throw new NotImplementedException();
         }

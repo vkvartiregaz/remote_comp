@@ -7,6 +7,7 @@ using System.Linq;
 using System.IO;
 using System.Diagnostics;
 using ComputationServer.Data.Interfaces;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
@@ -59,9 +60,9 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        protected override Dictionary<string, Status> PollJobs(List<Job> jobs)
+        protected override Dictionary<string, ExecutionStatus> PollJobs(List<Job> jobs)
         {
-            var result = new Dictionary<string, Status>();
+            var result = new Dictionary<string, ExecutionStatus>();
 
             foreach (var job in jobs)
             {
@@ -75,12 +76,12 @@ namespace ComputationServer.Nodes.AccessModules
                 if (process.HasExited)
                 {
                     if (process.ExitCode == 0)
-                        result[jobId] = Status.COMPLETED;
+                        result[jobId] = ExecutionStatus.COMPLETED;
                     else
-                        result[jobId] = Status.FAILED;
+                        result[jobId] = ExecutionStatus.FAILED;
                 }
                 else
-                    result[jobId] = Status.RUNNING;
+                    result[jobId] = ExecutionStatus.RUNNING;
             }
 
             return result;

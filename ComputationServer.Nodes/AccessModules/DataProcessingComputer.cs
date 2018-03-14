@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq;
 using ComputationServer.Data.Interfaces;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
@@ -61,11 +62,11 @@ namespace ComputationServer.Nodes.AccessModules
             if (job == null)
                 return false;
 
-            if (job.Status == Status.RUNNING)
+            if (job.Status == ExecutionStatus.RUNNING)
                 if(!StopJob(job))
                     return false;
 
-            _jobQueue.Update(new Dictionary<string, Status> { { job.Guid, Status.ABORTED } });
+            _jobQueue.Update(new Dictionary<string, ExecutionStatus> { { job.Guid, ExecutionStatus.ABORTED } });
             
             return true;
         }
@@ -89,7 +90,7 @@ namespace ComputationServer.Nodes.AccessModules
 
         protected abstract bool StopJob(Job operation);
 
-        protected abstract Dictionary<string, Status> PollJobs(List<Job> jobs);
+        protected abstract Dictionary<string, ExecutionStatus> PollJobs(List<Job> jobs);
 
         protected abstract List<MnemonicValue> FetchResults(List<Job> completed);
 

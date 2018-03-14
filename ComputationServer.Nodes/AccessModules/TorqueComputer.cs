@@ -1,4 +1,5 @@
 ﻿using ComputationServer.Data.Entities;
+using ComputationServer.Data.Enums;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -22,7 +23,7 @@ namespace ComputationServer.Nodes.AccessModules
             throw new NotImplementedException();
         }
 
-        protected override Dictionary<string, Status> PollJobs(List<Job> jobs)
+        protected override Dictionary<string, ExecutionStatus> PollJobs(List<Job> jobs)
         {
             throw new NotImplementedException();
         }

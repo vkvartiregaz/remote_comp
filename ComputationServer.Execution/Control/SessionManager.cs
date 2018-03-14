@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Execution.Control
 {
@@ -20,7 +21,7 @@ namespace ComputationServer.Execution.Control
             {
                 lock (_sessionsState)
                 {
-                    var activeStatuses = new List<Status> { Status.PROCESSING, Status.QUEUED, Status.RUNNING };
+                    var activeStatuses = new List<ExecutionStatus> { ExecutionStatus.PROCESSING, ExecutionStatus.QUEUED, ExecutionStatus.RUNNING };
                     var active = (from s in _sessions.Values
                                   where activeStatuses.Contains(s.Status)
                                   select s).ToList();
@@ -59,7 +60,7 @@ namespace ComputationServer.Execution.Control
         {
             var id = Guid.NewGuid().ToString();
             session.Id = id;
-            session.Status = Status.PROCESSING;
+            session.Status = ExecutionStatus.PROCESSING;
 
             lock (_sessionsState)
             {
