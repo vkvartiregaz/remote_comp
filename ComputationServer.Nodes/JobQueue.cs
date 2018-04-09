@@ -6,28 +6,55 @@ using System.Text;
 using System.Linq;
 using ComputationServer.Utility;
 using ComputationServer.Data.Enums;
+using System.Threading;
 
 namespace ComputationServer.Nodes
 {
     public class JobQueue
     {
-        private ConcurrentQueue<Job> _pendingJobs;
-        private ConcurrentQueue<Job> _activeJobs;
-        private ConcurrentQueue<Job> _completedJobs;
-        private ConcurrentQueue<Job> _failedJobs;
+        //valid status changes:
+        //queued -> pending
+        //queued -> aborted
+        //pending -> active
+        //pending -> aborted
+        //active -> completed
+        //active -> failed
+        //active -> aborted
+        //ANY OTHER CHANGES WILL CAUSE AN EXCEPTION
+        private Queue<Job> _queuedJobs;
+        private Queue<Job> _pendingJobs;
+        private List<Job> _activeJobs;
+        private List<Job> _completedJobs;
+        private List<Job> _failedJobs;
+        
+        //active <= _maxConcurrent, == _maxConcurrent if possible
+        //active + pending >= _maxConcurrent if queued + active >= _maxConcurrent
         private int _maxConcurrent;
+                
         private object _queueState = new object();
         
         public JobQueue(int maxConcurrent)
         {
             _maxConcurrent = maxConcurrent;
-            _pendingJobs = new ConcurrentQueue<Job>();
-            _activeJobs = new ConcurrentQueue<Job>();
-            _completedJobs = new ConcurrentQueue<Job>();
-            _failedJobs = new ConcurrentQueue<Job>();
+            _queuedJobs = new Queue<Job>();
+            _pendingJobs = new Queue<Job>();
+            _activeJobs = new List<Job>();
+            _completedJobs = new List<Job>();
+            _failedJobs = new List<Job>();
         }
 
         #region Queue State Access
+
+        public List<Job> Pending
+        {
+            get
+            {
+                lock (_queueState)
+                {
+                    return Replicator.CopyAll(_pendingJobs.ToList());
+                }
+            }
+        }
 
         public List<Job> Completed
         {
@@ -68,7 +95,7 @@ namespace ComputationServer.Nodes
         {
             lock(_queueState)
             {
-                _pendingJobs.Enqueue(job);
+                _queuedJobs.Enqueue(job);
             }
         }
 
@@ -76,118 +103,144 @@ namespace ComputationServer.Nodes
         {
             lock (_queueState)
             {
-                var inPending = (from op in _pendingJobs
-                                 where condition(op)
-                                 select op).ToList();
+                var aggregated = Replicator.CopyAll(_queuedJobs.ToList(), 
+                    _pendingJobs.ToList(),
+                    _activeJobs, 
+                    _completedJobs, 
+                    _failedJobs);
 
-                var inActive = (from op in _activeJobs
-                                where condition(op)
-                                select op).ToList();
-
-                var inCompleted = (from op in _completedJobs
-                                   where condition(op)
-                                   select op).ToList();
-
-                var inFailed = (from op in _failedJobs
-                                where condition(op)
-                                select op).ToList();
-
-                return Replicator.CopyAll(inPending, inActive, inCompleted, inFailed);
+                return (from j in aggregated
+                        where condition(j)
+                        select j).ToList();
             }
         }
 
-        public List<Job> Update(Dictionary<string, ExecutionStatus> updatedActive)
+        public void Update(Dictionary<string, ExecutionStatus> updates)
         {
-            var newActive = new ConcurrentQueue<Job>();
-            var newPending = new ConcurrentQueue<Job>();
-            var newCompleted = new ConcurrentQueue<Job>();
-            var newFailed = new ConcurrentQueue<Job>();
-            var changed = new List<Job>();
-
             lock (_queueState)
             {
-                var activeCopy = _activeJobs.ToList();
+                UpdateQueued(updates);
+                UpdateActive(updates);
+                UpdatePending(updates);
+            }              
+        }
 
-                foreach (var job in _pendingJobs)
-                    newPending.Enqueue(job);
+        private void UpdateQueued(Dictionary<string, ExecutionStatus> updates)
+        {
+            if (Monitor.TryEnter(_queueState))
+                throw new Exception("Job queue access violation: UpdateQueued call without a state lock");
 
-                foreach (var job in _completedJobs)
-                    newCompleted.Enqueue(job);
+            var toAborted = new List<string>();
 
-                foreach (var job in _failedJobs)
-                    newFailed.Enqueue(job);
-            
-                
-                foreach (var job in activeCopy)
+            foreach (var u in updates)
+            {
+                var queued = _queuedJobs.Where(j => j.Guid == u.Key).FirstOrDefault();
+
+                if (queued != null)
                 {
-                    if (updatedActive.ContainsKey(job.Guid))
-                    {
-                        var newStatus = updatedActive[job.Guid];
-                        job.Status = newStatus;
-                        changed.Add(job.Clone() as Job);
-                    }                    
-                    
-                    switch (job.Status)
-                    {
-                        case ExecutionStatus.RUNNING:
-                            {
-                                newActive.Enqueue(job);
-                                break;
-                            }
+                    if (u.Value == ExecutionStatus.ABORTED)
+                        toAborted.Add(queued.Guid);
+                    else
+                        throw new Exception($"Unexpected status change for an active job: status {u.Value.ToString()}, job guid {queued.Guid}");
 
+                }
+            }
+
+            for(int i = 0; i < _queuedJobs.Count; ++i)
+            {
+                var job = _queuedJobs.Dequeue();
+
+                if (!toAborted.Contains(job.Guid))
+                    _queuedJobs.Enqueue(job);
+            }
+        }
+
+        private void UpdateActive(Dictionary<string, ExecutionStatus> updates)
+        {
+            if (Monitor.TryEnter(_queueState))
+                throw new Exception("Job queue access violation: UpdateActive call without a state lock");
+
+            foreach (var u in updates)
+            {
+                var active = _activeJobs.Where(j => j.Guid == u.Key).FirstOrDefault();
+
+                if (active != null)
+                {
+                    switch (u.Value)
+                    {
                         case ExecutionStatus.COMPLETED:
                             {
-                                newCompleted.Enqueue(job);                                
+                                _activeJobs.Remove(active);
+                                _completedJobs.Add(active);
                                 break;
                             }
                         case ExecutionStatus.FAILED:
                         case ExecutionStatus.UNKNOWN:
-                            {                                
-                                newFailed.Enqueue(job);
+                            {
+                                _activeJobs.Remove(active);
+                                _failedJobs.Add(active);
+                                break;
+                            }
+                        case ExecutionStatus.ABORTED:
+                            {
+                                _activeJobs.Remove(active);
                                 break;
                             }
                         default:
                             {
-                                break;
+                                throw new Exception($"Unexpected status change for an active job: status {u.Value.ToString()}, job guid {active.Guid}");
                             }
                     }
                 }
-                
-                var deficit = _maxConcurrent - newActive.Count;
-
-                while (deficit > 0)
-                {
-                    Job toStart;
-                    if (newPending.TryDequeue(out toStart))
-                    {                        
-                        toStart.Status = ExecutionStatus.RUNNING;
-                        newActive.Enqueue(toStart);
-                        changed.Add(toStart.Clone() as Job);
-                        deficit--;
-                    }
-                    else
-                        break;
-                }
-
-                _pendingJobs = newPending;
-                _activeJobs = newActive;
-                _completedJobs = newCompleted;
-                _failedJobs = newFailed;
             }
-
-            return changed;
         }
 
-        public List<Job> GetAll()
+        private void UpdatePending(Dictionary<string, ExecutionStatus> updates)
         {
-            lock (_queueState)
+            if (Monitor.TryEnter(_queueState))
+                throw new Exception("Job queue access violation: UpdatePending call without a state lock");
+
+            var toActive = new List<string>();
+            var toAborted = new List<string>();
+
+            foreach (var u in updates)
             {
-                var pending = _pendingJobs.ToList();
-                var active = _activeJobs.ToList();
-                var completed = _completedJobs.ToList();
-                var failed = _failedJobs.ToList();
-                return Replicator.CopyAll(pending, active, completed, failed);
-            }            
+                var pending = _pendingJobs.Where(j => j.Guid == u.Key).FirstOrDefault();
+
+                if (pending != null)
+                {
+                    switch (u.Value)
+                    {
+                        case ExecutionStatus.RUNNING:
+                            {
+                                toActive.Add(pending.Guid);
+                                break;
+                            }
+                        case ExecutionStatus.ABORTED:
+                            {
+                                toAborted.Add(pending.Guid);
+                                break;
+                            }
+                        default:
+                            {
+                                throw new Exception($"Unexpected status change for a pending job: status {u.Value.ToString()}, job guid {pending.Guid}");
+                            }
+                    }
+                }
+            }
+
+            for (int i = 0; i < _pendingJobs.Count; ++i)
+            {
+                var job = _pendingJobs.Dequeue();
+
+                if (!toAborted.Contains(job.Guid))
+                {
+                    if (!toActive.Contains(job.Guid) && _activeJobs.Count < _maxConcurrent)
+                        _activeJobs.Add(job);
+                    else
+                        _pendingJobs.Enqueue(job);
+                }
+            }
         }
     }
 }

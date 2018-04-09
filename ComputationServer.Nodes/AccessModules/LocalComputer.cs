@@ -11,7 +11,7 @@ using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LocalComputer : DataProcessingComputer
+    public class LocalComputer : ProcessingComputer
     {
         private string _workareaPath;
         private string _executableName;

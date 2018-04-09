@@ -9,12 +9,12 @@ using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public abstract class DataProcessingComputer : IComputer
+    public abstract class ProcessingComputer : IComputer
     {
         protected JobQueue _jobQueue;
         protected IMethodRepository _methodRepository;
 
-        public DataProcessingComputer(int maxConcurrent,
+        public ProcessingComputer(int maxConcurrent,
             IMethodRepository methodRepository)
         {
             _jobQueue = new JobQueue(maxConcurrent);
@@ -28,26 +28,32 @@ namespace ComputationServer.Nodes.AccessModules
             return true;
         }
 
-        public List<Job> Progress()
+        public void Progress()
         {
-            var oldActive = _jobQueue.Active;
-            var pollResults = PollJobs(oldActive);
-            var updated = _jobQueue.Update(pollResults);
+            var pollResults = PollJobs(_jobQueue.Active);
 
-            if (updated == null)
-                throw new Exception("Progress failed");
+            try
+            {
+                _jobQueue.Update(pollResults);
 
-            var newActive = _jobQueue.Active;
-            var toStart = (from j in newActive
-                           where !oldActive.Contains(j)
-                           select j).ToList();
+                //check every pending job (is it ready to run)
+                _jobQueue.Update(toRun);
 
-            foreach (var job in toStart)
-                StartJob(job);
+                var toStart = (from j in toRun
+                                where _jobQueue.Active.Contains(j)
+                                select j).ToList();
 
-            FetchResults(_jobQueue.Completed);
+                foreach (var job in toStart)
+                    StartJob(job);                                
+            }
+            catch(Exception ex)
+            {
+                //log a failed Progress()
+            }
+                
 
-            return updated;
+
+            
         }
 
         public void EnqueueJob(Job operation)

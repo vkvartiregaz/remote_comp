@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class TorqueComputer : DataProcessingComputer
+    public class TorqueComputer : ProcessingComputer
     {
         public TorqueComputer(int maxConcurrent) : base(maxConcurrent, null) { }
 

@@ -54,6 +54,7 @@ namespace ComputationServer.Data.Entities
             clone.Name = Name;
             clone.Input = Input;
             clone.Output = Output;
+            clone.Dependencies = Dependencies;
             clone.Status = Status;
             clone.Session = Session;
             return clone;

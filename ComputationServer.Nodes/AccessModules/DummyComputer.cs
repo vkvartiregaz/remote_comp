@@ -7,7 +7,7 @@ using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class DummyComputer : DataProcessingComputer
+    public class DummyComputer : ProcessingComputer
     {
         public DummyComputer(int maxConcurrent, IMethodRepository methodRepository) 
             : base(maxConcurrent, methodRepository) { }

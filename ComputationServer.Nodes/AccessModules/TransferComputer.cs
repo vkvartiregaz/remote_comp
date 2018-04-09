@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class DataTransferComputer : IComputer
+    public class TransferComputer : IComputer
     {
         protected IDataStorage _storage;
         protected JobQueue _jobQueue;

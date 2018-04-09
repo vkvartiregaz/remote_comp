@@ -10,7 +10,7 @@ using ComputationServer.Data.Enums;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class LinuxComputer : DataProcessingComputer
+    public class LinuxComputer : ProcessingComputer
     {
         public LinuxComputer(int maxConcurrent) : base(maxConcurrent, null) { }
 
