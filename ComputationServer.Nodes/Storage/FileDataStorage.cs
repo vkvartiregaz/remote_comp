@@ -8,6 +8,8 @@ namespace ComputationServer.Nodes
 {
     public class FileDataStorage : IDataStorage
     {
+        public string Id => throw new NotImplementedException();
+
         public bool RequestData(string id, DataType type)
         {
             throw new NotImplementedException();

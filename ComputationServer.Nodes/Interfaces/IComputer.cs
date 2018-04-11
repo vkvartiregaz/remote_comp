@@ -15,8 +15,9 @@ namespace ComputationServer.Nodes.Interfaces
         void EnqueueJob(Job operation);
         bool AbortJob(string guid);
         List<Job> FindJobs(Func<Job, bool> condition);
-        int TimeEstimate(Job operation);
+        double TimeEstimate(Job operation);
 
+        decimal ChargeRate { get; }
         string ComputerId { get; }
     }
 }

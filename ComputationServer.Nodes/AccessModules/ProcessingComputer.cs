@@ -16,12 +16,15 @@ namespace ComputationServer.Nodes.AccessModules
 
         public string ComputerId { get; private set; }
 
+        public decimal ChargeRate { get; private set; }
+
         public ProcessingComputer(int maxConcurrent,
             IMethodRepository methodRepository)
         {
             _jobQueue = new JobQueue(maxConcurrent);
             _methodRepository = methodRepository;
             ComputerId = "abacaba";
+            ChargeRate = 1.2m;
         }
 
         #region IComputer Methods
@@ -133,6 +136,11 @@ namespace ComputationServer.Nodes.AccessModules
         protected abstract List<MnemonicValue> FetchResults(List<Job> completed);
 
         protected abstract bool Ping();
+
+        double IComputer.TimeEstimate(Job operation)
+        {
+            throw new NotImplementedException();
+        }
 
         #endregion
     }

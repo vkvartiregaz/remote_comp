@@ -134,14 +134,21 @@ namespace ComputationServer.Scheduling.Schedulers
         private bool GoodEnough(List<Assignment> position,
             Session session)
         {
-            var execTime = CalcTimeTotal(position);
+            var execTime = 0.0;
+            var execCost = 0.0m;
 
-            if (DateTime.UtcNow.AddSeconds(execTime) > session.Deadline)
-                return false;
+            foreach (var pair in position)
+            {
+                var timeCurr = pair.Computer.TimeEstimate(pair.Job);
+                var costCurr = (decimal)timeCurr * pair.Computer.ChargeRate;
+                execTime += timeCurr;
+                execCost += costCurr;
+            }
 
-            var execCost = CalcCostTotal(position);
+            //TODO add data trnsfers
 
-            if (execCost > session.Budget)
+            if (DateTime.UtcNow.AddSeconds(execTime) > session.Deadline ||
+                execCost > session.Budget)
                 return false;
 
             return true;
@@ -154,29 +161,28 @@ namespace ComputationServer.Scheduling.Schedulers
             foreach (var pair in position)
                 result.Assigned.Add(pair.Job, pair.Computer);
 
-            result.EstimatedTime = CalcTimeTotal(position);
-            result.EstimatedCost = CalcCostTotal(position);
+            var execTime = 0.0;
+            var execCost = 0.0m;
+
+            foreach (var pair in position)
+            {
+                var timeCurr = pair.Computer.TimeEstimate(pair.Job);
+                var costCurr = (decimal)timeCurr * pair.Computer.ChargeRate;
+                execTime += timeCurr;
+                execCost += costCurr;
+            }
+
+            //TODO add data trnsfers
+
+            result.EstimatedTime = execTime;
+            result.EstimatedCost = execCost;
 
             return result;
         }
         
-        private double CalcTimeTotal(List<Assignment> position)
+        private void IdentifyDataTranfers(List<Assignment> schedule)
         {
-            var result = 0.0;
 
-            foreach (var pair in position)
-                result += pair.Computer.TimeEstimate(pair.Job);
-
-            //detect data trnsfers
-
-            //calc time for each transfer and add to total
-
-            return result;
-        }
-
-        private decimal CalcCostTotal(List<Assignment> position)
-        {
-            return 0.0m;
         }
 
         private class Particle

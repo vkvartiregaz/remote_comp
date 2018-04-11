@@ -10,5 +10,6 @@ namespace ComputationServer.Nodes.Interfaces
         bool RequestData(string id, DataType type);
         bool TransferData(string id, string uri);
         bool UploadData(string id, DataType type, byte[] data);
+        string Id { get; }
     }
 }
