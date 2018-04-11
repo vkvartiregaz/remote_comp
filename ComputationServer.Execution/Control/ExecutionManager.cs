@@ -215,23 +215,28 @@ namespace ComputationServer.Execution.Control
         {
             while (true)
             {
-                var changed = new List<Job>();
+                var allChanges = new Dictionary<string, ExecutionStatus>();
 
                 foreach (var c in _computers)
-                    changed.InsertRange(0, c.Progress());
+                {
+                    var currChanges = c.Progress();
+
+                    foreach(var change in currChanges)
+                        allChanges.Add(change.Key, change.Value);
+                }
 
                 var activeSessions = _sessionManager.Active;
 
                 foreach (var session in activeSessions)
                 {
-                    var toUpdate = (from op in changed
-                                     where op.Session.Id == session.Id
-                                     select op).ToList();
+                    var toUpdate = (from upd in allChanges
+                                     where session.Jobs.Any(j => j.Guid == upd.Key)
+                                     select upd).ToList();
 
-                    foreach(var operation in toUpdate)
+                    foreach(var upd in toUpdate)
                     {
-                        var old = session.Jobs.Where(op => op.Guid == operation.Guid).FirstOrDefault();
-                        old = operation;
+                        var job = session.Jobs.Where(op => op.Guid == upd.Key).FirstOrDefault();
+                        job.Status = upd.Value;
                     }
 
                     var sessionJobs = session.Jobs;

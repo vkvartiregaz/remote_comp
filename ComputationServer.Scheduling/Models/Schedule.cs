@@ -9,7 +9,7 @@ namespace ComputationServer.Scheduling.Models
     public class Schedule
     {
         public Dictionary<Job, IComputer> Assigned { get; set; } = new Dictionary<Job, IComputer>();
-        public int EstimatedTime { get; set; }
+        public double EstimatedTime { get; set; }
         public decimal EstimatedCost { get; set; }
     }
 }

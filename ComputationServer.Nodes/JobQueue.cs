@@ -26,6 +26,7 @@ namespace ComputationServer.Nodes
         private List<Job> _activeJobs;
         private List<Job> _completedJobs;
         private List<Job> _failedJobs;
+        private List<Job> _abortedJobs;
         
         //active <= _maxConcurrent, == _maxConcurrent if possible
         //active + pending >= _maxConcurrent if queued + active >= _maxConcurrent
@@ -41,9 +42,32 @@ namespace ComputationServer.Nodes
             _activeJobs = new List<Job>();
             _completedJobs = new List<Job>();
             _failedJobs = new List<Job>();
+            _abortedJobs = new List<Job>();
         }
 
         #region Queue State Access
+
+        public List<Job> Queued
+        {
+            get
+            {
+                lock (_queueState)
+                {
+                    return Replicator.CopyAll(_queuedJobs.ToList());
+                }
+            }
+        }
+
+        public List<Job> Aborted
+        {
+            get
+            {
+                lock (_queueState)
+                {
+                    return Replicator.CopyAll(_abortedJobs.ToList());
+                }
+            }
+        }
 
         public List<Job> Pending
         {
@@ -107,7 +131,8 @@ namespace ComputationServer.Nodes
                     _pendingJobs.ToList(),
                     _activeJobs, 
                     _completedJobs, 
-                    _failedJobs);
+                    _failedJobs,
+                    _abortedJobs);
 
                 return (from j in aggregated
                         where condition(j)
@@ -115,17 +140,41 @@ namespace ComputationServer.Nodes
             }
         }
 
-        public void Update(Dictionary<string, ExecutionStatus> updates)
+        public Dictionary<string, ExecutionStatus> Update(Dictionary<string, ExecutionStatus> updates)
         {
+            var result = new Dictionary<string, ExecutionStatus>();
+
             lock (_queueState)
             {
-                UpdateQueued(updates);
-                UpdateActive(updates);
-                UpdatePending(updates);
-            }              
+                UpdateActive(updates, result);
+                UpdateQueued(updates, result);                
+                UpdatePending(updates, result);
+            }
+
+            return result;
         }
 
-        private void UpdateQueued(Dictionary<string, ExecutionStatus> updates)
+        public double DelayEstimate()
+        {
+            var result = 0.0;
+
+            lock (_queueState)
+            {
+                foreach (var job in _queuedJobs)
+                    result += job.TimeEstimate();
+
+                foreach (var job in _pendingJobs)
+                    result += job.TimeEstimate();
+
+                foreach (var job in _activeJobs)
+                    result += job.TimeEstimate();
+            }
+
+            return result;
+        }
+
+        private void UpdateQueued(Dictionary<string, ExecutionStatus> updates,
+            Dictionary<string, ExecutionStatus> result)
         {
             if (Monitor.TryEnter(_queueState))
                 throw new Exception("Job queue access violation: UpdateQueued call without a state lock");
@@ -138,7 +187,7 @@ namespace ComputationServer.Nodes
 
                 if (queued != null)
                 {
-                    if (u.Value == ExecutionStatus.ABORTED)
+                    if (u.Value == ExecutionStatus.ABORTED)                                          
                         toAborted.Add(queued.Guid);
                     else
                         throw new Exception($"Unexpected status change for an active job: status {u.Value.ToString()}, job guid {queued.Guid}");
@@ -150,12 +199,20 @@ namespace ComputationServer.Nodes
             {
                 var job = _queuedJobs.Dequeue();
 
-                if (!toAborted.Contains(job.Guid))
+                if (toAborted.Contains(job.Guid))
+                {
+                    _abortedJobs.Add(job);
+                    result.Add(job.Guid, ExecutionStatus.ABORTED);
+                }
+                else if (_activeJobs.Count + _pendingJobs.Count < _maxConcurrent)
+                    _pendingJobs.Enqueue(job);
+                else
                     _queuedJobs.Enqueue(job);
             }
         }
 
-        private void UpdateActive(Dictionary<string, ExecutionStatus> updates)
+        private void UpdateActive(Dictionary<string, ExecutionStatus> updates,
+            Dictionary<string, ExecutionStatus> result)
         {
             if (Monitor.TryEnter(_queueState))
                 throw new Exception("Job queue access violation: UpdateActive call without a state lock");
@@ -172,6 +229,7 @@ namespace ComputationServer.Nodes
                             {
                                 _activeJobs.Remove(active);
                                 _completedJobs.Add(active);
+                                result.Add(active.Guid, ExecutionStatus.COMPLETED);
                                 break;
                             }
                         case ExecutionStatus.FAILED:
@@ -179,11 +237,14 @@ namespace ComputationServer.Nodes
                             {
                                 _activeJobs.Remove(active);
                                 _failedJobs.Add(active);
+                                result.Add(active.Guid, ExecutionStatus.FAILED);
                                 break;
                             }
                         case ExecutionStatus.ABORTED:
                             {
                                 _activeJobs.Remove(active);
+                                _abortedJobs.Add(active);
+                                result.Add(active.Guid, ExecutionStatus.ABORTED);
                                 break;
                             }
                         default:
@@ -195,7 +256,8 @@ namespace ComputationServer.Nodes
             }
         }
 
-        private void UpdatePending(Dictionary<string, ExecutionStatus> updates)
+        private void UpdatePending(Dictionary<string, ExecutionStatus> updates,
+            Dictionary<string, ExecutionStatus> result)
         {
             if (Monitor.TryEnter(_queueState))
                 throw new Exception("Job queue access violation: UpdatePending call without a state lock");
@@ -233,13 +295,18 @@ namespace ComputationServer.Nodes
             {
                 var job = _pendingJobs.Dequeue();
 
-                if (!toAborted.Contains(job.Guid))
+                if (toAborted.Contains(job.Guid))
                 {
-                    if (!toActive.Contains(job.Guid) && _activeJobs.Count < _maxConcurrent)
-                        _activeJobs.Add(job);
-                    else
-                        _pendingJobs.Enqueue(job);
+                    _abortedJobs.Add(job);
+                    result.Add(job.Guid, ExecutionStatus.ABORTED);
                 }
+                else if (toActive.Contains(job.Guid) && _activeJobs.Count < _maxConcurrent)
+                {
+                    _activeJobs.Add(job);
+                    result.Add(job.Guid, ExecutionStatus.RUNNING);
+                }
+                else
+                    _pendingJobs.Enqueue(job);                
             }
         }
     }

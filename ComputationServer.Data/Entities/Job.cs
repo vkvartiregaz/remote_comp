@@ -11,7 +11,7 @@ namespace ComputationServer.Data.Entities
     {
         public int LocalId { get; set; }
 
-        public string Name { get; set; }
+        public Method Method { get; set; }
 
         public List<DataObject> Input { get; set; }
 
@@ -46,12 +46,17 @@ namespace ComputationServer.Data.Entities
 
         private object _hold = new object();
 
+        public double TimeEstimate()
+        {
+            return Method.TimeEstimate(Input);
+        }
+
         public object Clone()
         {
             var clone = new Job();
             clone.Guid = Guid;
             clone.LocalId = LocalId;
-            clone.Name = Name;
+            clone.Method = Method;
             clone.Input = Input;
             clone.Output = Output;
             clone.Dependencies = Dependencies;

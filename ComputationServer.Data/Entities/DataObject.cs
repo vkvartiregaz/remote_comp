@@ -9,6 +9,7 @@ namespace ComputationServer.Data.Entities
     {
         public DataType Type { get; set; }
         public DataStatus Status { get; set; }
+        public Dictionary<string, double> Metrics { get; set; }
         public string Source { get; set; }
         public string Id { get; set; }
     }

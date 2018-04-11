@@ -14,46 +14,60 @@ namespace ComputationServer.Nodes.AccessModules
         protected JobQueue _jobQueue;
         protected IMethodRepository _methodRepository;
 
+        public string ComputerId { get; private set; }
+
         public ProcessingComputer(int maxConcurrent,
             IMethodRepository methodRepository)
         {
             _jobQueue = new JobQueue(maxConcurrent);
             _methodRepository = methodRepository;
+            ComputerId = "abacaba";
         }
 
         #region IComputer Methods
 
         public virtual bool IsAlive()
         {
-            return true;
+            return Ping();
         }
 
-        public void Progress()
+        public Dictionary<string, ExecutionStatus> Progress()
         {
             var pollResults = PollJobs(_jobQueue.Active);
+            var result = new Dictionary<string, ExecutionStatus>();
 
             try
             {
-                _jobQueue.Update(pollResults);
+                var firstWave = _jobQueue.Update(pollResults);
 
-                //check every pending job (is it ready to run)
-                _jobQueue.Update(toRun);
+                var toRun = new Dictionary<string, ExecutionStatus>();
 
-                var toStart = (from j in toRun
-                                where _jobQueue.Active.Contains(j)
-                                select j).ToList();
+                foreach(var job in _jobQueue.Pending)
+                    if (ReadyToRun(job))
+                        toRun.Add(job.Guid, ExecutionStatus.RUNNING);
+                
+                var secondWave = _jobQueue.Update(toRun);
+
+                var toStart = (from job in _jobQueue.Active
+                               where toRun.Keys.Contains(job.Guid)
+                               select job).ToList();
 
                 foreach (var job in toStart)
-                    StartJob(job);                                
+                    StartJob(job);
+
+                foreach (var change in secondWave)
+                    result.Add(change.Key, change.Value);
+
+                foreach (var change in firstWave)
+                    if (!result.ContainsKey(change.Key))
+                        result.Add(change.Key, change.Value);
             }
             catch(Exception ex)
             {
                 //log a failed Progress()
             }
-                
 
-
-            
+            return result;
         }
 
         public void EnqueueJob(Job operation)
@@ -68,7 +82,8 @@ namespace ComputationServer.Nodes.AccessModules
             if (job == null)
                 return false;
 
-            if (job.Status == ExecutionStatus.RUNNING)
+            if (job.Status == ExecutionStatus.RUNNING ||
+                job.Status == ExecutionStatus.QUEUED)
                 if(!StopJob(job))
                     return false;
 
@@ -88,6 +103,23 @@ namespace ComputationServer.Nodes.AccessModules
             return 12;
         }
 
+        private bool ReadyToRun(Job job)
+        {
+            if (job.Input.Any(d => d.Status != DataStatus.Available || d.Source != ComputerId))
+                return false;
+
+            var otherJobs = job.Session.Jobs;
+
+            var prevJobs = (from j in otherJobs
+                            where job.Dependencies.Contains(j.Guid)
+                            select j).ToList();
+
+            if (prevJobs.Any(j => j.Status != ExecutionStatus.COMPLETED))
+                return false;
+
+            return true;
+        }
+
         #endregion
 
         #region Abstract Methods
@@ -99,6 +131,8 @@ namespace ComputationServer.Nodes.AccessModules
         protected abstract Dictionary<string, ExecutionStatus> PollJobs(List<Job> jobs);
 
         protected abstract List<MnemonicValue> FetchResults(List<Job> completed);
+
+        protected abstract bool Ping();
 
         #endregion
     }

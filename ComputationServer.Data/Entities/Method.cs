@@ -4,9 +4,11 @@ using System.Text;
 
 namespace ComputationServer.Data.Entities
 {
-    public class Method
+    public abstract class Method
     {
         public string Name { get; set; }
         public byte[] Binary { get; set; }
+
+        public abstract double TimeEstimate(List<DataObject> inputData);
     }
 }
