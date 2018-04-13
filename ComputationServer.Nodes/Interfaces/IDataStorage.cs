@@ -7,9 +7,8 @@ namespace ComputationServer.Nodes.Interfaces
 {
     public interface IDataStorage
     {
-        bool RequestData(string id, DataType type);
-        bool TransferData(string id, string uri);
-        bool UploadData(string id, DataType type, byte[] data);
-        string Id { get; }
+        bool EnqueueTransfer(DataTransfer transfer);
+        bool CancelTransfer(DataTransfer transfer);
+        double TimeEstimate(DataTransfer transfer);
     }
 }

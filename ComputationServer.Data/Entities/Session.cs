@@ -12,6 +12,8 @@ namespace ComputationServer.Data.Entities
 
         public List<Job> Jobs { get; set; } = new List<Job>();
 
+        public List<DataTransfer> DataTransfers { get; set; } = new List<DataTransfer>();
+
         public DateTime Deadline { get; set; }
 
         public decimal Budget { get; set; }

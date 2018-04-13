@@ -1,4 +1,5 @@
 ﻿using ComputationServer.Data.Entities;
+using ComputationServer.Data.Enums;
 using ComputationServer.Nodes.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -8,10 +9,14 @@ using System.Threading.Tasks;
 
 namespace ComputationServer.Nodes.AccessModules
 {
-    public class TransferComputer : IComputer
+    public class DataLoadingComputer : IComputer
     {
         protected IDataStorage _storage;
         protected JobQueue _jobQueue;
+
+        public decimal ChargeRate => throw new NotImplementedException();
+
+        public string ComputerId => throw new NotImplementedException();
 
         public bool AbortJob(string guid)
         {
@@ -40,6 +45,16 @@ namespace ComputationServer.Nodes.AccessModules
         }
 
         public List<Job> Progress()
+        {
+            throw new NotImplementedException();
+        }
+
+        Dictionary<string, ExecutionStatus> IComputer.Progress()
+        {
+            throw new NotImplementedException();
+        }
+
+        double IComputer.TimeEstimate(Job operation)
         {
             throw new NotImplementedException();
         }
